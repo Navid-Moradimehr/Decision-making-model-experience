@@ -1,0 +1,53 @@
+schema: phase15_v2_objective_pairwise32_v1
+status: authorized_single_pairwise_memorization_diagnostic
+run_id: phase15_v2_pairwise32_v1
+parents:
+  phase15_feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  phase15_v2_lock: experiments/phase15_offline_v2.lock.json
+  regression_diagnostic: artifacts/runs/phase15_offline_v2_fit_diagnostic_v2/diagnostic.json
+  regression_arrays: artifacts/runs/phase15_offline_v2_fit_diagnostic_v2/fit_arrays.npz
+  regression_manifest: artifacts/runs/phase15_offline_v2_fit_diagnostic_v2/manifest.json
+  fit_error_audit: artifacts/runs/phase15_v2_fit_error_audit_v1/audit.json
+  fit_error_report: reports/phase15_v2_fit_error_audit.md
+cell:
+  row_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 58]
+  representation: R0
+  feature_count: 61
+  action_count: 9
+  source_dtype: float32
+  fit_dtype: float64
+  source_x_sha256: AECE48C1A055078D51A4252FCB187BD019C8FDEC980C1425CD712BEA039853A4
+  fit_x_sha256: B38F4909252F6F2036C4B15A040974F8EE40E42ABE53094270BDB1560CCB6028
+  source_y_sha256: 9628CC2356C52FB4EE3554716C99DB4085B8200093383ADACCBDB56E37294045
+  fit_y_sha256: 6A90D24FF22AD408181F957AD2E1587537A33E67D01E3EB419D200F7E49502BF
+training:
+  objective: pairwise
+  seed: 15015
+  hidden: [32, 32]
+  max_epochs: 1200
+  patience: 100
+  learning_rate: 0.002
+  l2: 0.00001
+  layout_weighting: equal_total_weight_per_layout
+  model_selection: minimum_layout_macro_regret_then_objective_validation_loss
+  exact_tied_pairs: excluded
+gate:
+  best_action_set_agreement_minimum: 0.99
+  mean_normalized_regret_state_micro_maximum: 0.01
+scope:
+  fit_only_frozen_32_training_rows: true
+  heldout_metrics: false
+  heldout_model_selection: false
+  new_transitions: false
+  new_episodes: false
+  planner_calls: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  reserve_access: false
+resource_caps:
+  wall_seconds: 10800
+  output_bytes: 20971520
+outputs:
+  run_dir: artifacts/runs/phase15_v2_pairwise32_v1
+  report: reports/phase15_v2_pairwise32_result.md

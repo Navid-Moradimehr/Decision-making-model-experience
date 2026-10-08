@@ -1,0 +1,13 @@
+schema: phase15_d153_coverage_scaling_v3
+status: protocol_amended_prelock
+base_config: configs/phase15_d153_coverage_scaling_v2.yaml
+parents:
+  d153_v2_config: configs/phase15_d153_coverage_scaling_v2.yaml
+  d153_v2_amendment: reports/phase15_d153_coverage_scaling_amendment.md
+  d153_v2_lock: experiments/phase15_d153_coverage_scaling_v2.lock.json
+  d153_v2_gate_failure_report: reports/phase15_d153_d60_v2_gate_abort.md
+outputs:
+  lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d60_gate: artifacts/runs/phase15_d153_d60_reproduction_gate_v3/gate.json
+  run_dir: artifacts/runs/phase15_d153_coverage_scaling_v3
+  report: reports/phase15_d153_coverage_scaling_result_v3.md

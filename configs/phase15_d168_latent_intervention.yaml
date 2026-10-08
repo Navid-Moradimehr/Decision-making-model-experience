@@ -1,0 +1,152 @@
+schema: phase15_d168_latent_intervention_v1
+status: locked_g1_runtime_amendment_v1
+protocol: reports/phase15_d168_protocol.md
+
+parents:
+  d153_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d153_report: reports/phase15_d153_coverage_scaling_result_v3.md
+  d164_source: src/consequence_lab/phase15_d164.py
+  d164_report: reports/phase15_d164_result.md
+  d161_oracle_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_exact_outcome_steps_oracle_best_training_objective.npz
+  d161_result: artifacts/runs/phase15_d161_fit_boundary_v1/result.json
+  d161_manifest: artifacts/runs/phase15_d161_fit_boundary_v1/manifest.json
+  d162_lock: experiments/phase15_d162_fresh_layout_relational.lock.json
+  d166_result: artifacts/runs/phase15_d166_failure_aware_risk_v1/result.json
+  d166_interpretation: reports/phase15_d166_interpretation.md
+  environment: src/consequence_lab/inertial_corridor.py
+  task_generator: src/consequence_lab/corridor_tasks.py
+  phase12_teacher: src/consequence_lab/phase12_teacher.py
+  phase14_features: src/consequence_lab/phase14c.py
+  phase14_collector: src/consequence_lab/phase14f.py
+  phase14_exact_branch: src/consequence_lab/phase14.py
+  d162_collector: src/consequence_lab/phase15_d162.py
+
+data:
+  train_rows: 1365
+  train_layouts: 140
+  actions_per_state: 9
+  d153_rows_have_full_trajectories: false
+  reconstruct_training_states_from: [seed, decision_index, collector_action_ids_audit_only]
+  replay_state_feature_abs_tolerance: 0.000001
+  branch_summary_max_abs_tolerance: 0.000001
+  grouped_split:
+    folds: 5
+    function: sha256_layout_first8_hex_integer_mod_folds
+    internal_validation_fold: 0
+  reserve_range_sealed: {start: 130000, count: 200}
+  fresh_development_block:
+    start: 197000
+    count: 100
+    outcome_generation: only_after_training_feasibility_gate
+
+representation:
+  canonical_state: d164_agent_relative_63
+  raw_state: R0_61
+  physical_action_dimension: 2
+  action_encoding: actual_environment_acceleration_with_diagonal_normalization
+  future_offsets: [1, 2, 4, 8, 16, 32, 64, 128, 160]
+  trajectory_channels:
+    - goal_relative_x_over_workspace_diagonal
+    - goal_relative_y_over_workspace_diagonal
+    - vx_over_max_speed
+    - vy_over_max_speed
+    - minimum_obstacle_or_boundary_clearance_over_diagonal
+    - terminal_active
+    - terminal_success
+    - terminal_collision
+    - terminal_timeout
+  signature_dimension: 81
+  latent_dimension: 16
+  target_encoder: frozen_training_only_standardized_PCA
+  target_encoder_fit_layouts: D153_training_folds_1_to_4_only
+
+models:
+  candidate_count: 9
+  hidden_dimension: 64
+  relational_blocks: 1
+  attention_heads: 4
+  candidate_position_embeddings: false
+  relational_correction_bound: 0.20
+  relational_correction_initialization: zero
+  predictor: [65, 64, 64, 16]
+  candidate_batch_unit: full_state_candidate_set
+  optimizer: AdamW
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  max_epochs: 2000
+  validation_patience: 150
+  checkpoint: minimum_internal_validation_total_objective
+  seed: 16801
+
+runtime:
+  deterministic_algorithms: true
+  cublas_workspace_config: ":4096:8"
+
+objectives:
+  listwise_temperature: 0.125
+  pairwise_ignore_regret_gap_below: 0.02
+  pairwise_weight_gap_scale: 0.125
+  pairwise_weight_cap: 4.0
+  listwise_coefficient: 1.0
+  pairwise_coefficient: 0.25
+  effect_loss: huber_on_all_unordered_within_state_latent_differences
+  effect_huber_delta: 1.0
+  effect_coefficient: 0.5
+  preserve_loss: bounded_correction_squared_plus_outside_band_rank_preservation
+  preserve_coefficient: 0.1
+  ordinal_loss_ablation_arms: [listwise_only, pairwise_only]
+
+arms:
+  A0: raw_R0_physical_action_relational_ordinal
+  A1: canonical_R0_physical_action_relational_ordinal
+  A2: canonical_state_action_predicted_latent_shared_scorer_prediction_plus_ordinal
+  A3: A2_plus_same_state_intervention_effect_loss
+  A4: canonical_state_action_predicted_latent_relational_prediction_ordinal_preserve
+  A5: A4_plus_same_state_intervention_effect_loss
+  A6: exact_future_latent_same_relational_module_oracle_diagnostic
+
+gates:
+  synthetic_and_8_state_memorization_first: true
+  oracle_A6_train_macro_regret_max: 0.05
+  oracle_A6_train_catastrophic_fraction_max: 0.05
+  full_A5_train_macro_regret_max: 0.05
+  full_A5_train_catastrophic_fraction_max: 0.05
+  permutation_max_score_deviation: 0.000001
+  permutation_trials: 100
+  require_zero_top_choice_flips: true
+  summary_reproduction_max_abs_difference: 0.000001
+  fresh_vs_A1_macro_regret_gain_min: 0.02
+  fresh_vs_A1_catastrophic_gain_min: 0.05
+  fresh_paired_95pct_lower_bound_must_exceed_zero: true
+  fresh_safe_collision_accuracy_noninferiority: 0.02
+
+metrics:
+  inference_device: cpu
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  bootstrap_resamples: 10000
+  bootstrap_seed: 16802
+  fresh_layout_macro_unit: layout
+
+scope:
+  d153_training_rows_only_for_fit_and_internal_selection: true
+  deterministic_training_episode_replay: true
+  regenerate_training_action_continuation_trajectories: true
+  d162_training_or_tuning_access: false
+  fresh_layout_outcomes_before_G1: false
+  fresh_layout_outcomes_after_G1_only: true
+  closed_loop_student_control: false
+  dagger: false
+  reserve_access: false
+  test_access: false
+  world_model_foundation_training: false
+  JEPA_faithful_reproduction_claim: false
+
+outputs:
+  lock: experiments/phase15_d168_latent_intervention_v3.lock.json
+  run_dir: artifacts/runs/phase15_d168_latent_intervention_v1
+  g1_run_dir: artifacts/runs/phase15_d168_g1_runtime_v2
+  report: reports/phase15_d168_result.md
+  training_trajectories: artifacts/runs/phase15_d168_latent_intervention_v1/training_trajectories.npz

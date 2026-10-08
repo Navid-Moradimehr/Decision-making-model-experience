@@ -1,0 +1,102 @@
+project:
+  name: consequence-lab
+  phase: phase2_reacher_ranking_dev
+  status: preregistered_development_screen
+  max_gpu_hours: 0
+  checkpoint_frozen: true
+  training_authorized: false
+  teacher_generation_authorized: false
+  student_training_authorized: false
+  full_dataset_download_authorized: false
+
+source:
+  stable_worldmodel_revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  lewm_source_revision: 8edfeb336732b5f3ce7b8b210d0ba370a09e2cac
+  checkpoint_revision: 62adae4b71dc474ddf8f794c476ebfe737a743ca
+  checkpoint_sha256: eb70b1fd5409f8f81875d62f5ee5a20dd220a3128a477de66b5760f475f0f469
+  checkpoint_config_sha256: 2564086e961e7b5c7c04dffc451091115b389a590645ff19653c64fd0bc16e09
+
+environment:
+  id: swm/ReacherDMControl-v0
+  task: qpos_match
+  initial_state_source: seeded_wrapper_reset
+  episode_seed_range: [222000, 222020]
+  seed_range_convention: half_open
+  states_per_seed: 1
+  goal_generation: replay_25_uniform_bounded_actions_from_start
+  goal_action_seed_offset: 10000
+  goal_generation_sentinel_qpos_offset: [100.0, 100.0]
+  goal_horizon_env_actions: 25
+  goal_frame: rendered_rgb_at_goal_qpos_same_scene
+  target: goal_qpos_from_goal_generation
+  candidate_branching: reset_same_seed_then_restore_start_qpos_qvel_and_target_qpos
+
+planning:
+  objective: final_predicted_latent_sum_squared_l2_to_encoded_goal_frame
+  action_block_env_steps: 5
+  action_dimensions: 2
+  flattened_action_dimensions: 10
+  horizon_blocks: 5
+  horizon_env_actions: 25
+  predictor_rolling_window: 3
+  optimizer: local_diagonal_cem_with_projection
+  projection: clamp_each_sample_before_scoring_and_elite_update
+  rationale: pinned_upstream_cem_emits_unbounded_gaussian_actions
+  cem:
+    samples_per_iteration: 300
+    iterations: 30
+    elites: 30
+    seed: 331000
+    initial_std: 1.0
+    minimum_std: 0.05
+  ranking_population: final_cem_iteration_samples
+  evaluate_cem_mean_sequence_separately: true
+  action_bounds: [-1.0, 1.0]
+
+ground_truth:
+  candidate_success: qpos_match_termination_within_25_actions
+  normalized_cost: terminal_mean_absolute_qpos_error_divided_by_2pi
+  successful_candidate_cost: 0.0
+  true_cost_tie_tolerance: 0.0025
+  predicted_cost_tie_tolerance: 0.000001
+  pairwise_metric: tie_aware_pairwise_accuracy_excluding_true_ties
+  normalized_regret: max(0, selected_true_cost_minus_best_true_cost)
+  candidate_availability: fraction_of_states_with_any_successful_final_population_candidate
+
+statistics:
+  cluster_unit: episode_seed
+  bootstrap_replicates: 5000
+  bootstrap_seed: 331001
+  report_point_estimate_and_clustered_95_interval: true
+  development_only: true
+  confirmation_seed_range: not_assigned
+
+screening_criteria:
+  candidate_availability_at_least: 0.80
+  pairwise_accuracy_at_least: 0.90
+  normalized_regret_at_most: 0.10
+  interpretation: all_three_point_estimate_screens_required_to_draft_confirmation
+
+artifacts:
+  retain_per_state_candidate_model_costs: true
+  retain_per_state_candidate_simulator_costs: true
+  retain_success_bits_and_selected_indices: true
+  retain_start_and_goal_qpos: true
+  retain_seed_config_source_checkpoint_hashes: true
+  artifact_target_bytes: 100000000
+  artifact_stop_bytes: 500000000
+
+failure_categories:
+  - checkpoint_or_dependency_load
+  - goal_image_contract
+  - candidate_set_unavailable
+  - latent_rollout_nonfinite
+  - model_cost_ranking
+  - simulator_branch_mismatch
+  - qpos_match_objective
+  - compute_or_memory_budget
+
+next_gate:
+  if_any_screen_fails: stop_this_candidate_ranking_protocol_without_teacher_or_student
+  if_all_screens_pass: draft_independent_confirmation_protocol_before_execution
+  if_confirmation_passes: permit_teacher_dataset_design_only

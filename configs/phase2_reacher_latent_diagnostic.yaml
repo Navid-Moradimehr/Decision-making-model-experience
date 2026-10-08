@@ -1,0 +1,90 @@
+project:
+  name: consequence-lab
+  phase: phase2_reacher_latent_diagnostic
+  status: preregistered_diagnostic
+  max_gpu_hours: 0
+  checkpoint_frozen: true
+  training_authorized: false
+  teacher_generation_authorized: false
+  student_training_authorized: false
+
+source:
+  stable_worldmodel_revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  lewm_source_revision: 8edfeb336732b5f3ce7b8b210d0ba370a09e2cac
+  checkpoint_revision: 62adae4b71dc474ddf8f794c476ebfe737a743ca
+  checkpoint_sha256: eb70b1fd5409f8f81875d62f5ee5a20dd220a3128a477de66b5760f475f0f469
+  checkpoint_config_sha256: 2564086e961e7b5c7c04dffc451091115b389a590645ff19653c64fd0bc16e09
+
+environment:
+  id: swm/ReacherDMControl-v0
+  task: qpos_match
+  episode_seed_range: [223000, 223020]
+  seed_range_convention: half_open
+  goal_generation: 25_uniform_bounded_actions_from_start_with_sentinel_target
+  goal_action_seed_offset: 10000
+  sentinel_qpos_offset: [100.0, 100.0]
+  action_horizon_env_steps: 25
+  branch_target: sentinel_qpos_to_disable_early_termination
+  branch_start_state: reset_same_seed_then_restore_start_qpos_qvel
+
+candidate_bank:
+  reference_replay:
+    count: 1
+    purpose: deterministic_positive_control_only
+  uniform_random:
+    count: 64
+    seed_offset: 20000
+    distribution: iid_uniform_per_torque_per_step
+    bounds: [-1.0, 1.0]
+  reference_perturbation:
+    count: 64
+    seed_offset: 30000
+    distribution: iid_gaussian_added_to_reference_then_clipped
+    standard_deviation: 0.15
+    bounds: [-1.0, 1.0]
+  stable_order: [reference_replay, uniform_random, reference_perturbation]
+  action_shape: [25, 2]
+  preserve_candidate_arrays: true
+
+measurements:
+  checkpoint_prediction: final_predicted_latent
+  simulator_prediction_target: encode_rendered_final_frame_after_all_25_actions
+  latent_forecast_metrics: [coordinate_rmse, cosine_similarity]
+  latent_goal_cost_predicted: squared_l2_predicted_endpoint_vs_encoded_goal
+  latent_goal_cost_realized: squared_l2_encoded_simulator_endpoint_vs_encoded_goal
+  physical_cost: terminal_mean_absolute_qpos_error_divided_by_2pi
+  success: every_joint_absolute_qpos_error_below_0.05_radians
+  physical_cost_tie_tolerance: 0.0025
+  latent_cost_tie_tolerance: 0.000001
+  predicted_cost_tie_tolerance: 0.000001
+  pairwise_true_tie_tolerance: 0.0025
+  pairwise_model_tie_tolerance: 0.000001
+  pairwise_metric: tie_aware_pairwise_accuracy_excluding_true_ties
+  rank_aggregates: equal_episode_weight
+  bootstrap_unit: episode_seed
+  bootstrap_replicates: 5000
+  bootstrap_seed: 333001
+
+planning:
+  predictor_rolling_window: 3
+
+runtime:
+  candidate_batch_size: 16
+
+interpretation:
+  no_performance_gate: true
+  no_hyperparameter_selection: true
+  candidate_banks_reported_separately: true
+  positive_control_excluded_from_bank_ranking: true
+  diagnostic_decision_rules:
+    forecast_low_and_predicted_vs_realized_latent_cost_low: latent_dynamics_prediction_bottleneck
+    forecast_high_and_realized_latent_vs_physical_ranking_low: representation_or_goal_objective_mismatch
+    random_bank_coverage_low_but_reference_perturbation_coverage_high: broad_candidate_coverage_problem
+    latent_cost_rankings_high_but_cem_screen_low: planner_proposal_or_closed_loop_distribution_problem
+  caution: descriptive_diagnostic_not_confirmation_or_policy_evidence
+
+artifacts:
+  per_seed_incremental_progress: true
+  retain_candidates_costs_success_latents_and_endpoint_qpos: true
+  target_bytes: 100000000
+  stop_bytes: 500000000

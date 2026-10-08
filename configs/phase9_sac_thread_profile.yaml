@@ -1,0 +1,35 @@
+phase: 9
+experiment: sac_synthetic_thread_profile
+scope: synthetic_optimizer_throughput_only_no_task_performance
+environment:
+  kind: deterministic_shape_matched_gymnasium
+  observation_shape: [12]
+  action_shape: [2]
+  reward: 0.0
+  episode_length: 200
+  task_environment_imported: false
+seed: 990611
+thread_counts: [1, 4, 12]
+training_steps_per_thread_count: 2048
+sac:
+  policy: MlpPolicy
+  network: [256, 256]
+  learning_rate: 0.0003
+  buffer_size: 4096
+  learning_starts: 256
+  batch_size: 256
+  train_frequency: 1
+  gradient_steps: 1
+  gamma: 0.99
+  tau: 0.005
+  replay_buffer_device: cpu
+limits:
+  max_process_cpu_seconds_total: 600
+  max_process_cpu_seconds_per_run: 300
+  max_wall_seconds_total: 300
+  max_generated_artifact_bytes: 1048576
+artifact_policy:
+  save_model: false
+  save_returns: false
+  save_replay_buffer: false
+  save_training_log: false

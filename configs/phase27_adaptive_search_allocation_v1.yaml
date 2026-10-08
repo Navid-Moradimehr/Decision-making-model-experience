@@ -1,0 +1,86 @@
+schema: phase27-adaptive-exact-search-allocation-v1
+status: stage27a-authorized-historical-only
+protocol: reports/phase27_adaptive_search_allocation_protocol.md
+parent:
+  phase26_lock_sha256: 35CA0D309FBA4044BAD31FD386B312511A73857D8A15080DB15D51BE18C8889E
+  phase26_result_sha256: 7EF468AA8534F674D8116125FA5FBBCBDAC1CDC262593DAEDB98F3D8F3C4E30E
+  phase24_records_sha256: 8C3610927622B68FF1C0FEECB992F4344C3C1D863B6BE085CDA08A12528E32CE
+  phase25_records_sha256: EA3A641D000760DD158115077EA9A5BF2252599C27E30D466D0A506EEADB6461
+training_data:
+  phase24_b32_decisions: consumed-historical-only
+  phase25_b32_decisions: consumed-historical-only
+  all_decision_rows_audit:
+    phase24: 30276
+    phase25: 30472
+  split_group: layout_sha256
+  row_weighting: equal_total_weight_per_layout
+  target_primary: strict_objective_improvement_and_selected_first_action_changes
+  target_secondary:
+    - best_outcome_category_improves_with_candidates_25_32
+    - frozen_objective_improves_with_candidates_25_32
+    - selected_first_action_changes
+    - success_category_newly_available
+  model: fixed_ridge_probability
+  l2: 1.0
+  fold_standardization: true
+  grouped_folds: 5
+  feature_search: false
+  model_search: false
+  allocation_threshold: out_of_fold_threshold_for_primary_target_nominal_25_percent_extension_rate
+fresh_evaluation:
+  seed_start_provisional: 210000
+  layout_count: 500
+  replicas: [0, 1, 2]
+  identity_audit_required_before_execution_lock: true
+  status: not-audited-not-consumed
+  arms:
+    - fixed_b24
+    - fixed_b32
+    - learned_adaptive_b24_plus_8
+    - random_rate_matched_b24_plus_8
+    - prefix_ambiguity_rate_matched_b24_plus_8
+  nominal_extension_fraction: 0.25
+  ambiguity_rule: extend_on_lowest_runner_up_gap_quartile
+  ambiguity_tie_break: deterministic_outcome_independent_hash
+  reserve_test_d168_access: false
+planner:
+  horizon: 8
+  base_budget: 24
+  extension_candidates: [25, 32]
+  exact_rollout_scoring: true
+  final_action_selection: exact_frozen_objective
+  tie_break: frozen_phase11_lexicographic_sequence
+metrics:
+  bootstrap_draws: 10000
+  minimum_primary_target_positives_per_cohort: 100
+  top_quartile_enrichment_lower_bound_confidence: 0.95
+  success_difference_one_sided_confidence: 0.9875
+  collision_difference_one_sided_confidence: 0.9875
+  adverse_layout_one_sided_confidence: 0.9916666666666667
+gates:
+  absolute_safe_success_strictly_above: 0.90
+  collision_at_most: 0.05
+  timeout_exactly: 0
+  per_replica_success_at_least: 0.85
+  per_replica_collision_at_most: 0.10
+  success_difference_lower_vs_b32: -0.015
+  collision_difference_upper_vs_b32: 0.015
+  adverse_layout_event_upper_at_most: 0.05
+  mean_transition_ratio_vs_b32_at_most: 0.90
+  transition_ratio_95_upper_vs_b32_at_most: 0.95
+  median_latency_ratio_vs_b32_at_most: 0.90
+  learned_attribution:
+    compare_to: random_rate_matched_b24_plus_8
+    primary_endpoint: collision_rate
+    collision_difference_one_sided_confidence: 0.95
+    require_collision_difference_upper_below: 0.0
+    safe_success_difference_lower_confidence: 0.95
+    safe_success_noninferiority_margin: -0.015
+execution:
+  stage27a_historical_analysis_authorized: true
+  stage27b_episode_run_authorized: false
+  identity_only_audit: required_only_before_stage27b
+  simulator_episodes: false
+  planner_candidate_evaluations: false
+  training: false
+  reserve_test_d168_access: false

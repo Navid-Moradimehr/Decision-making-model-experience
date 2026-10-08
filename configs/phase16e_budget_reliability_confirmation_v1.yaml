@@ -1,0 +1,103 @@
+schema: phase16e-budget-reliability-confirmation-v1
+status: approved_awaiting_hash_audit
+execution_authorized: true
+protocol: reports/phase16e_budget_reliability_confirmation_protocol.md
+parent_phase16d_result: reports/phase16d_planning_compute_frontier_result.md
+parents:
+  phase16d_lock:
+    path: experiments/phase16d_planning_compute_frontier_v1.lock.json
+    sha256: 889A3B47DD6089AC21CDC7DBA5D5B04718CE35684BB135C1F6C84D56C290CCD2
+  phase16d_result:
+    path: artifacts/runs/phase16d_planning_compute_frontier_v1/result.json
+    sha256: 1078BF4C804F55348B69DE56D6BA3DDD75CBA7F79662A9EEA522E4E17B830CA6
+  phase16d_manifest:
+    path: artifacts/runs/phase16d_planning_compute_frontier_v1/manifest.json
+    sha256: C405D06D0031B2CD33F8495DBC0D350905DD715F7A49C98D523344C7240D0BD1
+  phase16d_episodes:
+    path: artifacts/runs/phase16d_planning_compute_frontier_v1/episodes.jsonl
+    sha256: 9F2CBA366CA8B29B3AB597094E9C4DC9C3180FAC4C692407FEF2B2B0B0357274
+environment:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  proposed_seed_start: 200000
+  proposed_layout_count: 500
+  freshness_audit_required_before_lock: true
+  grouping_unit: layout_sha256
+  protected_d168_block: [197000, 197100]
+  sealed_reserve_block: [130000, 130200]
+planning:
+  exact_dynamics: true
+  horizon: 8
+  budgets: [32, 64, 128]
+  search_replica_ids: [0, 1, 2]
+  proposal: uniform_unique_nested_prefix
+  objective: frozen_phase11_shooting_objective
+  tie_break: lexicographic_action_sequence
+  terminal_budget: min(budget,9**realized_horizon)
+  common_attempt_cap: 1280000
+  replanning: after_each_first_action
+  query_seed_formula: (layout_seed*1000003+decision_index+replica_id*2654435769) mod 2^32
+  replica_seed_stride: 2654435769
+  learned_prior: false
+geometry:
+  resolution: 0.04
+  waypoint_tolerance: 0.03
+execution:
+  device: cpu
+  parallel_episodes: false
+  counterbalance_seed: 160401
+  counterbalance_seed_formula: counterbalance_seed+layout_seed
+  expected_unique_episode_count: 5000
+  append_only_progress: true
+  wall_clock_cap: null
+  storage_cap: null
+analysis:
+  primary_independent_unit: layout_sha256
+  average_replicas_within_layout: true
+  bootstrap_draws: 10000
+  bootstrap_seed: 160401
+  paired_candidate_reference_replica_ids: true
+  candidate_budget_success_ci: one_sided_97_5_percent
+  rare_event_bound: one_sided_exact_clopper_pearson_98_75_percent
+  familywise_error_rate: 0.05
+  success_regression_event: any_replica_candidate_non_success_and_same_replica_B128_success
+  added_collision_event: any_replica_candidate_collision_and_same_replica_B128_non_collision
+  epsilon_optimal_action_metric: false
+gates:
+  reference_B128:
+    mean_safe_success_strictly_above: 0.90
+    mean_collision_at_most: 0.05
+    every_replica_safe_success_at_least: 0.85
+    every_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_ci_lower_above: 0.0
+  candidate_B32_B64:
+    mean_safe_success_strictly_above: 0.90
+    every_replica_safe_success_at_least: 0.85
+    mean_collision_at_most: 0.05
+    every_replica_collision_at_most: 0.10
+    paired_success_difference_ci_lower_at_least: -0.05
+    success_regression_event_upper_at_most: 0.05
+    added_collision_event_upper_at_most: 0.05
+    mean_rollout_transition_ratio_at_most: 0.70
+    transition_ratio_ci_upper_at_most: 0.75
+    median_decision_latency_ratio_at_most: 0.70
+  selection_order: [32, 64, 128]
+scope:
+  training: false
+  learned_prior: false
+  learned_world_model: false
+  dagger: false
+  student_control: false
+  adaptive_planning: false
+  d168_access: false
+  reserve_access: false
+  test_access: false
+  automatic_next_branch: false
+outputs:
+  proposed_run_dir: artifacts/runs/phase16e_budget_reliability_confirmation_v1
+  proposed_lock: experiments/phase16e_budget_reliability_confirmation_v1.lock.json
+  layout_audit: artifacts/runs/phase16e_budget_reliability_confirmation_v1/layout_audit.json
+  execution_order: artifacts/runs/phase16e_budget_reliability_confirmation_v1/execution_order.json
+  episodes: artifacts/runs/phase16e_budget_reliability_confirmation_v1/episodes.jsonl
+  result: artifacts/runs/phase16e_budget_reliability_confirmation_v1/result.json
+  manifest: artifacts/runs/phase16e_budget_reliability_confirmation_v1/manifest.json

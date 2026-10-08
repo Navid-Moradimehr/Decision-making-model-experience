@@ -1,0 +1,101 @@
+project:
+  name: consequence-lab
+  phase: phase10b_reacher_cached_ranking
+  status: exploratory_reuse
+  training_authorized: true
+  new_simulator_labels_authorized: false
+  world_model_inference_authorized: false
+  independent_state_contexts: 20
+  candidate_populations_per_context: 3
+
+source:
+  data: artifacts/runs/phase2_reacher_planner_dev/progress.jsonl
+  data_sha256: 85fe3244695fa5d6a1efa9bd0fcc19a2526b3bdfb53cf6521254c3ed7762600e
+  primary_generator: mlp_cem
+  evaluate_generators: [mlp_cem, native_lewm_cem, uniform_random]
+  exploratory_only: true
+
+split:
+  unit: state_goal_seed
+  seed_range: [232000, 232020]
+  method: five_fold_grouped
+  fold_assignment: "(seed - 232000) mod 5"
+  training_contexts_per_fold: 16
+  heldout_contexts_per_fold: 4
+  reused_validation_or_test: false
+
+features:
+  state: [start_qpos, start_qvel, goal_qpos]
+  candidate_action: full_25_by_2_flattened
+  world_model_derived: [supervised_mlp_cost, native_lewm_cost]
+  auxiliary_features:
+    - tie_aware_supervised_mlp_average_rank_divided_by_candidate_count_minus_one
+    - tie_aware_native_lewm_average_rank_divided_by_candidate_count_minus_one
+    - "clip((mlp_cost - set_median) / set_IQR, -10, 10)"
+    - "clip((lewm_cost - set_median) / set_IQR, -10, 10)"
+  forbidden_inputs: [seed, candidate_id, simulator_cost, success_bit, endpoint_qpos]
+  qpos_scale_radians: 3.141592653589793
+  qvel_scale: 10.0
+
+models:
+  direct_value:
+    input: state_plus_full_action_sequence
+    output: per_candidate_range_normalized_simulator_cost
+  direct_soft_policy:
+    input: state_plus_full_action_sequence
+    output: candidate_logits
+    target: "softmax(-range_normalized_regret / 0.05)"
+  direct_hard_policy:
+    input: state_plus_full_action_sequence
+    output: candidate_logits
+    target: minimum_simulator_cost_ties_within_0.0025
+  shared_rank_correction:
+    input: state_plus_full_action_sequence_plus_four_cached_score_features
+    encoder_width: 64
+    output: "base_mlp_rank + 0.2 * tanh(delta)"
+  relational_rank_correction:
+    input: same_as_shared_rank_correction
+    encoder_width: 64
+    attention_layers: 2
+    attention_heads: 4
+    feedforward_width: 128
+    positional_embeddings: false
+    output: "base_mlp_rank + 0.2 * tanh(delta)"
+
+training:
+  seeds: [0, 1, 2]
+  optimizer: AdamW
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  batch_contexts: 4
+  updates: 1000
+  gradient_clip_norm: 1.0
+  fixed_final_checkpoint: true
+  early_stopping: false
+  training_population_only: mlp_cem
+  target_soft_temperature: 0.05
+  hard_target_cost_tie_tolerance: 0.0025
+  ordinal_correction:
+    success_mass_temperature: 0.05
+    pair_margin: 0.02
+    pair_weight: 0.25
+    correction_l2_weight: 0.1
+    local_candidates: 16
+    correction_bound: 0.2
+
+evaluation:
+  primary_unit: heldout_state_goal_seed
+  metrics: [selected_regret, selected_success, candidate_availability, conditional_selection_success, tie_aware_pairwise_accuracy, top_k_success_availability, parameter_count, scorer_latency]
+  top_k: [4, 8, 16, 120]
+  physical_cost_tie_tolerance: 0.0025
+  bootstrap_unit: state_goal_seed
+  bootstrap_replicates: 10000
+  exploratory_only: true
+  calibration_claim: false
+  closed_loop_claim: false
+
+resources:
+  device_default: cuda
+  max_wall_hours: 2
+  max_artifact_bytes: 500000000
+  project_stop_bytes: 2000000000

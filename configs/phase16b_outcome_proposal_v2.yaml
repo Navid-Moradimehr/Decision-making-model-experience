@@ -1,0 +1,91 @@
+schema: phase16b-outcome-proposal-v2
+created: 2026-10-03
+amends: reports/phase16b_equivariance_abort_v1.md
+question: Can deployable geometry predict search-seed-marginalized forced-action outcomes well enough to propose actions without imitating noisy exact step/effort argmins?
+data:
+  training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  training_sha256: 6F78AB42EBC9EC3E26D957C95785F6A4A4D6991C6958D8D7B4513CBC0C7C0A52
+  phase16a_result: artifacts/runs/phase16_contract_repair_v1/result.json
+  phase16a_progress: artifacts/runs/phase16_contract_repair_v1/states.jsonl
+  source_state_count: 128
+  layout_count: 64
+  search_replicates_per_state_action: 3
+  split: selected_d153_train_layouts_only
+  run_dir: artifacts/runs/phase16b_outcome_proposal_v2
+  validation_access: false
+  reserve_access: false
+  test_access: false
+  fresh_layout_outcomes: false
+  student_closed_loop: false
+  dagger: false
+folds:
+  method: sort_unique_layouts_by_sha256_then_round_robin
+  count: 5
+  seeds: [160301, 160302, 160303]
+representations:
+  - r0_61
+  - d164_canonical_63
+actions:
+  representation: d164_normalized_physical_vector
+  count: 9
+target:
+  type: empirical_search_seed_marginalized_forced_first_action_terminal_class
+  positive: success
+  negative: collision
+  forbidden_classes: [active, timeout]
+  source: three_saved_Phase16A_proposal_seed_replicates
+  no_exact_argmin_or_rank_target: true
+model:
+  architecture: shared_action_conditioned_mlp
+  hidden: [64, 64]
+  activation: relu
+  dropout: 0
+  output: collision_logit
+training:
+  optimizer: AdamW
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  epochs: 400
+  batch: full_fold
+  checkpoint: minimum_training_bce
+  no_validation_checkpoint_selection: true
+  device: cuda_if_available
+integrity:
+  synthetic_seed: 160300
+  synthetic_epochs: 150
+  synthetic_min_accuracy: 0.98
+  synthetic_learning_rate: 0.01
+  # Float32 batch operations showed 1.7881393432617188e-7 row-order drift in v1.
+  # This strict 1e-6 tolerance is a numerical allowance, not a model behavior target.
+  permutation_max_error: 0.000001
+metrics:
+  primary:
+    - collision_average_precision
+    - collision_recall_at_two_proposed_actions
+    - continuation_success_rate_of_top_one_proposal
+    - success_set_hit_at_three
+  baselines:
+    - training_fold_action_frequency
+    - uniform_random_expected
+  secondary:
+    - log_loss
+    - brier_score
+    - macro_recall
+  bootstrap:
+    unit: layout
+    draws: 10000
+    seed: 160301
+  collision_score_threshold: 0.5
+  probability_clip_epsilon: 0.0000001
+  score_tie_abs_tolerance: 0.000000000001
+  top_one_k: 1
+  collision_recall_k: 2
+  success_set_hit_k: 3
+  advancement_minimum_seeds_passing_joint_gate: 2
+gates:
+  advance_to_fresh_development_protocol_only_if:
+    top_one_success_gain_over_action_frequency_at_least: 0.03
+    top_one_success_gain_ci_lower_above: 0.0
+    collision_recall_at_two_gain_over_uniform_at_least: 0.10
+    collision_recall_at_two_gain_ci_lower_above: 0.0
+  otherwise: stop_after_out_of_fold_screen

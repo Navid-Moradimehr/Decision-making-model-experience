@@ -1,0 +1,192 @@
+phase: 12
+experiment: inertial_corridor_exact_teacher_amortization
+protocol_status: locked_before_phase12_data
+updated: 2026-09-28
+
+research_question: Can a small candidate-set value model or bounded policy learn the exact receding-horizon shooting planner's local preferences and preserve meaningful closed-loop advantage over geometry waypoint?
+
+task:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  generator_sha256: 47CC5FF39643428EBA6D031C377402FF585B83FE5AE63E8217927308D08DAA1E
+  topology: three_baffle_two_openings
+  max_episode_steps: 160
+  prior_development_seeds: {start: 120000, count: 100, use: spent_benchmark_only}
+  planner: {method: random_shooting, horizon: 8, num_sequences: 128}
+  comparator: {method: geometry_waypoint, resolution: 0.04, waypoint_tolerance: 0.03}
+  exact_planner_proposal_seed: (scenario_seed * 1000003 + elapsed_steps) mod 2^32
+
+seed_splits:
+  train_teacher: {start: 140000, count: 120, unit: layout_sha256}
+  validation_teacher: {start: 141000, count: 40, unit: layout_sha256}
+  dagger_collection_round_1: {start: 142000, count: 40, unit: layout_sha256}
+  dagger_collection_round_2: {start: 142040, count: 40, unit: layout_sha256}
+  dagger_collection_round_3: {start: 142080, count: 40, unit: layout_sha256}
+  closed_loop_development: {start: 143000, count: 40, unit: layout_sha256}
+  final_reserve: {start: 130000, count: 200, status: sealed_not_accessed}
+  rules:
+    - Split by complete layout/episode before extracting decision windows.
+    - Seeds 110000-110039 are prior design/configuration data and are not used for Phase 12 training or validation.
+    - Seeds 120000-120099 are spent independent planner-headroom development data and are not used for student training/model selection.
+    - New train, validation, DAgger collection, and closed-loop development layout hashes must be unique and pairwise disjoint; hash-only layout generation is permitted before outcomes.
+    - Do not generate, evaluate, or otherwise inspect final-reserve outcomes until architecture, losses, hyperparameters, stopping rules, and code are frozen under a separate final-evaluation lock.
+
+teacher_data:
+  split_rollouts: exact_shooting_closed_loop
+  candidate_set:
+    count: 128
+    horizon: 8
+    construction: exactly reproduce Phase 11 constant-action prefix followed by seeded-uniform unique action sequences
+    action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    identity: sha256_of_uint8_action_sequence
+  per_decision_fields:
+    - public_current_state_and_task_spec
+    - candidate_action_sequences
+    - exact_per_candidate_rollout_states_and_terminal_state
+    - terminal_status_collision_success_and_goal_progress
+    - planner_objective_key
+    - teacher_selected_candidate
+    - candidate_rank_and_normalized_ordinal_regret
+  objective:
+    source: exact_phase11_lexicographic_shooting_objective
+    key: [outcome_class, conditional_progress_metric, noncoast_action_count]
+    outcome_class_order: {success: 0, active_horizon_endpoint: 1, timeout: 2, collision: 3}
+    conditional_progress_metric: successful_steps_if_success_else_endpoint_goal_distance
+    scalarization: forbidden; retain exact objective components and derive only normalized within-set ordinal rank regret
+  regret:
+    tie_handling: average_rank_for_identical_lexicographic_objective_keys
+    normalized_rank_regret: (average_rank - best_average_rank) / max(1, candidate_count - 1)
+  sampling_unit: layout_sha256
+  trajectory_policy: Save all exact per-candidate state trajectories through termination or horizon to support audit and future mechanism work; never feed them to T0 students.
+  schema_version: corridor_candidate_outcomes_v1
+
+information_firewall:
+  student_runtime_allowlist:
+    - normalized_public_current_state
+    - visible_task_spec_and_obstacle_geometry
+    - legal_candidate_action_sequences
+  teacher_only:
+    - exact_candidate_rollout_states
+    - objective_keys_cost_components_and_regrets
+    - teacher_selected_candidate
+    - future_success_collision_and_progress_labels
+  evaluation_only:
+    - held_out_episode_outcomes
+    - paired_method_comparisons
+  forbidden_runtime_features:
+    - scenario_seed_or_query_seed
+    - candidate_index_or_proposal_order
+    - teacher_cost_rank_regret_or_selected_id
+    - future_state_or_rollout_trajectory
+    - simulator_internal_snapshot
+  state_feature_contract:
+    dimension: 52
+    order: [x_over_width, y_over_height, vx_over_max_speed, vy_over_max_speed, width, height, goal_x_over_width, goal_y_over_height, goal_radius, safe_speed_over_max_speed, agent_radius, acceleration_over_max_speed, damping, max_speed, dt, remaining_steps_fraction, nine_obstacles_each_xmin_ymin_xmax_ymax_normalized_by_workspace]
+    candidate_feature: eight_time_ordered_action_one_hot_vectors_of_width_ten_with_a_distinct_padding_token
+    note: Temporal position within a sequence is meaningful; candidate row order is not.
+
+models:
+  common:
+    parameters_max: 100000
+    architecture: shared_candidate_MLP; one shared scorer applied independently to each state-candidate pair; no candidate-index embeddings or positional semantics
+    state_encoder: [52, 128, 64]
+    candidate_input: 80
+    joint_scorer: [128, 64, 1]
+    activation: GELU
+    dropout: 0.0
+    inference: deterministic_CPU
+  baselines:
+    - id: geometry_waypoint
+      role: strongest_cheap_reference
+    - id: exact_random_shooting
+      role: teacher_and_upper_reference
+    - id: candidate_value
+      output: normalized_teacher_ordinal_rank_regret
+      selection: minimum_predicted_regret_with_candidate_content_lexicographic_tie_break
+    - id: bounded_candidate_policy
+      output: one_logit_per_candidate_then_softmax
+      selection: maximum_logit_with_candidate_content_lexicographic_tie_break
+  policy_targets:
+    hard_tied_optima: uniform_target_over_all_candidates_with_minimum_exact_objective_key
+    soft_rank_regret_temperatures: [0.05, 0.15, 0.30]
+    expected_regret: expected_normalized_teacher_rank_regret_under_student_distribution
+    no_combined_loss_search: true
+  fit:
+    optimizer: AdamW
+    learning_rate: 0.0003
+    weight_decay: 0.0001
+    batch_decision_sets: 32
+    max_epochs: 120
+    early_stopping_patience: 15
+    gradient_norm_clip: 1.0
+    fit_seeds: [1201, 1202, 1203]
+    training_weighting: equal_total_weight_per_layout
+    selection: choose_variant_by_validation_layout_macro_mean_selected_normalized_rank_regret; tie_break_lower_validation_NLL_then_simpler_loss_id
+
+evaluation:
+  offline_validation_metrics:
+    - optimal-set_top1_agreement
+    - exact_teacher_selected_candidate_agreement
+    - top_k_optimal_set_recall
+    - mean_selected_normalized_rank_regret
+    - expected_normalized_teacher_rank_regret
+    - tie-aware_pairwise_rank_accuracy
+    - Kendall_tau_b
+    - NLL_against_uniform_exact_optimal_set
+    - Brier_against_uniform_exact_optimal_set
+    - per-objective-component_prediction_errors
+    - permutation_max_mean_probability_deviation_and_top-choice-flip-rate
+    - inference_latency_and_parameter_count
+  closed_loop:
+    seeds: {start: 143000, count: 40}
+    methods: [geometry_waypoint, exact_random_shooting, frozen_selected_student]
+    primary_sampling_unit: layout_sha256
+    primary_outcome: paired_safe_success_rate
+    bootstrap: {resamples: 10000, seed: 143011, unit: layout_sha256, paired: true}
+    report: [success, collision, timeout, steps, control_effort, planner_failure, candidate_success_availability, decision_latency, teacher_disagreement, teacher_regret_at_disagreement]
+    latency_device: CPU
+  probability_interpretation: Softmax outputs are preference distributions, not calibrated success probabilities; ECE is not used for this phase.
+
+gates:
+  software_and_data:
+    - source_parity_matches_exact_phase11_planner_on_at_least_200_randomized_state_seed_queries
+    - no_train_validation_dagger_development_layout_hash_overlap
+    - information_firewall_tests_pass
+    - permutation_max_probability_deviation_at_most_1e-6_and_zero_content_choice_flips_across_100_random_permutations_per_fixture
+  offline_student_competence:
+    - selected_variant_validation_layout_macro_mean_normalized_rank_regret_at_most_0.15
+  dagger_trigger:
+    - student_success_point_gain_vs_geometry_waypoint_at_least_0.10
+    - paired_success_gain_95_percent_lower_bound_above_0
+    - paired_collision_difference_95_percent_upper_bound_at_most_0.05
+    - median_student_decision_latency_at_most_0.333_of_exact_shooting
+  final_phase12_amortization_pass:
+    - student_success_point_gain_vs_geometry_waypoint_at_least_0.15
+    - paired_success_gain_95_percent_lower_bound_above_0
+    - paired_collision_difference_95_percent_upper_bound_at_most_0.02
+    - student_success_rate_within_0.15_of_exact_shooting_on_same_development_layouts
+    - median_student_decision_latency_at_most_0.20_of_exact_shooting
+    - software_and_data_gates_pass
+  dagger:
+    maximum_rounds: 3
+    stop_after_two_consecutive_rounds_without_success_gain_or_validation_regret_improvement: true
+    select_final_development_model_by: [highest_success, lowest_collision, lowest_validation_normalized_regret, lowest_latency]
+
+compute_caps:
+  teacher_dataset_wall_seconds: 10800
+  teacher_dataset_artifact_bytes: 1073741824
+  student_training_gpu_hours: 2
+  phase12_generated_artifacts_total_bytes: 1073741824
+  absolute_project_generated_artifact_stop_bytes: 2147483648
+  device: RTX_4060_8GB_if_available_else_CPU
+
+reserve_policy:
+  seed_range: {start: 130000, count: 200}
+  accessed_in_phase12: false
+  final_run_requires: separately_frozen_config_code_checkpoint_dataset_split_and_authorization_lock
+
+stop_rules:
+  - If exact teacher dataset parity, information firewall, or permutation gates fail, stop before model fitting.
+  - If no model passes offline competence, stop before closed-loop student evaluation and DAgger.
+  - If no offline student meets the DAgger trigger on closed-loop development, stop student work and do not introduce world-model mechanisms.
+  - If DAgger fails the final Phase 12 amortization gate, preserve the negative result and stop before Phase 14.
+  - If a student passes Phase 12, proceed first to a separately documented Phase 14 mechanism protocol; do not access reserve automatically.

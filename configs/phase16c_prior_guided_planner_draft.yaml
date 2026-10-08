@@ -1,0 +1,39 @@
+schema: phase16c-prior-guided-planner-draft-v1
+status: draft_not_authorized_for_execution
+purpose: fresh_development_equal_budget_proposal_verification
+parent_result: artifacts/runs/phase16b_score_correction_v1/result.json
+training:
+  corpus: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  states: 128
+  layouts: 64
+  outcome_replicates_per_state_action: 3
+  representation: d164_canonical_63
+  architecture: shared_action_conditioned_mlp_64_64_relu
+  initialization_seed: 160301
+  epochs: 400
+  checkpoint: minimum_training_bce
+evaluation:
+  development_seed_start: 197000
+  development_layout_count: 100
+  paired_methods:
+    - uniform_exact_shooting_128
+    - canonical_rank_prior_exact_shooting_128
+  horizon: 8
+  replanning: after_each_executed_first_action
+  reserve_seed_start: 130000
+  reserve_count: 200
+  reserve_access: false
+metrics:
+  primary: [success_rate_difference, collision_rate_difference]
+  bootstrap_unit: layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 160301
+  minimum_success_gain: 0.03
+  success_ci_lower_must_exceed: 0.0
+  maximum_collision_increase_ci_upper: 0.02
+data_policy:
+  fresh_development_scored: false
+  validation: false
+  reserve: false
+  test: false
+  dagger: false

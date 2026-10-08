@@ -1,0 +1,56 @@
+schema: phase15_d156_predicted_oracle_component_swap
+status: locked_offline_component_sensitivity_audit
+protocol: reports/phase15_d156_protocol.md
+parents:
+  stage_c_lock: experiments/phase15_d155_stage_c.lock.json
+  stage_c_result: artifacts/runs/phase15_d155_stage_c_v1/result.json
+  stage_c_manifest: artifacts/runs/phase15_d155_stage_c_v1/manifest.json
+  stage_c_constant: artifacts/runs/phase15_d155_stage_c_v1/per_action_constant.npz
+  stage_c_cart: artifacts/runs/phase15_d155_stage_c_v1/bounded_cart.json
+  stage_c_mlp: artifacts/runs/phase15_d155_stage_c_v1/action_conditioned_mlp.npz
+  stage_a_lock: experiments/phase15_d155_v2.lock.json
+  stage_a_result: artifacts/runs/phase15_d155_stage_a_v2/result.json
+  stage_a_manifest: artifacts/runs/phase15_d155_stage_a_v2/manifest.json
+  stage_a_head: artifacts/runs/phase15_d155_stage_a_v2/F_outcome_steps.npz
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+split:
+  validation_rows: 202
+  validation_layouts: 20
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  reused: true
+  test_reserve_rows_dereferenced: 0
+feature_swaps:
+  exact_exact: [exact_outcome, exact_steps]
+  predicted_exact: [predicted_outcome, exact_steps]
+  exact_predicted: [exact_outcome, predicted_steps]
+  predicted_predicted: [predicted_outcome, predicted_steps]
+parity:
+  absolute_tolerance: 1.0e-10
+  require_stage_a_exact_subset_reproduction: true
+  require_stage_c_predicted_pair_reproduction: true
+metrics:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  high_margin_pair_gap_threshold: 0.25
+  safe_action_regret_at_most: 0.125
+  catastrophic_action_regret_at_least: 0.5
+scope:
+  validation_only: true
+  model_fitting: false
+  hyperparameter_tuning: false
+  new_data: false
+  simulator_calls: false
+  planner_calls: false
+  new_transitions: false
+  new_episodes: false
+  student_controlled_simulation: false
+  dagger: false
+  closed_loop: false
+  world_model: false
+  jepa: false
+  test_access: false
+  reserve_access: false
+outputs:
+  lock: experiments/phase15_d156.lock.json
+  run_dir: artifacts/runs/phase15_d156_component_swap_v1
+  report: reports/phase15_d156_result.md

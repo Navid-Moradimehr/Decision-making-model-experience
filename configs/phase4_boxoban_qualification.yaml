@@ -1,0 +1,126 @@
+project:
+  name: consequence-lab
+  phase: 4
+  protocol: boxoban_medium_qualification_v1
+  status: proposed_source_and_solver_smoke_only
+  authorized_stage: stage0_training_split_smoke
+  validation_screen_authorized: false
+  student_training_authorized: false
+  teacher_dataset_generation_authorized: false
+  max_gpu_hours: 0
+  max_cpu_hours: 1
+  generated_artifact_target_bytes: 100000000
+  generated_artifact_stop_bytes: 2000000000
+
+dataset:
+  repository: https://github.com/google-deepmind/boxoban-levels
+  revision: 78011d8c86ad423bfb2e1005012393b4c3c24409
+  license: Apache-2.0
+  source_note: "Dataset repo says this is not an official Google product; cite Boxoban levels."
+  variant: medium
+  train_directory: medium/train
+  validation_directory: medium/valid
+  train_level_count_reported: 450000
+  validation_level_count_reported: 50000
+  levels_per_shard: 1000
+  level_id_format: "{split}/{shard:03d}.txt#{level_index:04d}"
+  test_data_access: forbidden
+  level_sampler:
+    algorithm: sort_level_ids_by_sha256
+    hash_input: "consequence-lab/phase4-boxoban-qualification-v1:{canonical_level_id}"
+    train_smoke_count: 12
+    validation_qualification_count: 60
+    validation_selection_inspected: false
+
+task:
+  board_shape: [10, 10]
+  box_count: 4
+  goal_count: 4
+  observations:
+    fields: [walls, goals, player_position, box_positions]
+    encoding: multi_channel_symbolic_grid
+    hidden_simulator_state_allowed: false
+    pixels_or_rendering_used: false
+  actions: [up, right, down, left]
+  invalid_move_semantics: no_op
+  episode_action_limit: 500
+  primary_objective: solve_level_within_action_limit
+  secondary_objective: minimize_primitive_actions
+
+stage0:
+  purpose: verify_source_parser_transitions_solver_and_cpu_feasibility_on_train_only
+  validation_or_test_levels_allowed: false
+  checks:
+    - preserve_goal_under_player_or_box
+    - deterministic_transition_and_replay
+    - independent_transition_fixture_parity
+    - exact_solver_path_replay
+    - exact_solver_matches_exhaustive_bfs_on_small_fixtures
+  solver:
+    objective: minimum_primitive_actions
+    algorithm: optimal_astar_or_dijkstra_with_reopening
+    deadlock_pruning: static_non_goal_corner_only
+    maximum_expanded_states_per_level: 2000000
+    wall_clock_seconds_per_level: 60
+    timeout_or_node_limit_means_unresolved_not_unsolvable: true
+  resource_caps:
+    peak_process_memory_bytes: 8000000000
+    total_cpu_seconds: 3600
+    generated_artifact_bytes: 2000000000
+
+stage1:
+  purpose: validation_only_teacher_headroom_qualification
+  authorization: false
+  levels: 60
+  methods:
+    - random_legal_action
+    - greedy_goal_distance
+    - deadlock_aware_greedy_push
+    - exact_optimal_search
+  common_action_limit: 500
+  strongest_simple_baseline: deadlock_aware_greedy_push
+  deadlock_aware_greedy_push_contract:
+    player_reachability: flood_fill_without_push_search
+    box_goal_distances: static_obstacle_aware_distances
+    static_deadlock_rejection: non_goal_corner_only
+    multi_push_lookahead: forbidden
+    learned_model: forbidden
+  primary_metrics:
+    - solved_within_action_limit
+    - primitive_actions_to_solve
+  secondary_metrics:
+    - pushes_to_solve
+    - deadlock_rate
+    - solver_expanded_states
+    - solver_latency_median_p95_cpu
+    - unresolved_solver_level_count
+  uncertainty:
+    paired_unit: complete_level
+    method: paired_bootstrap
+    replicates: 10000
+    seed: 504001
+  advance_gate:
+    transition_and_solver_correctness: pass
+    exact_solver_proofs_required: 60
+    exact_solver_unresolved_levels_allowed: 0
+    exact_search_success_gain_over_greedy_push_point_min: 0.10
+    exact_search_success_gain_over_greedy_push_ci95_lower_min_exclusive: 0.0
+    no_exclusion_of_selected_levels_after_screening: true
+    otherwise: stop_before_student_training
+  final_test_access: forbidden
+
+artifacts:
+  run_directory: artifacts/runs/phase4_boxoban_qualification_v1
+  save_raw_levels_only_for_selected_ids: true
+  save_solver_paths_and_hashes: true
+  save_video_or_renderings: false
+  manifest_requires_git_head_dirty_tree_and_all_source_hashes: true
+  refuse_overwrite: true
+
+stop_conditions:
+  - "Do not fetch or parse validation levels during Stage 0."
+  - "Do not access any upstream test levels."
+  - "Do not tune the parser, solver, heuristic, sampler, or metrics on the qualification validation sample."
+  - "A solver timeout is unresolved; never exclude that level post hoc."
+  - "Do not train a student or generate teacher preference labels in this protocol."
+  - "If a code correction follows validation access, freeze a new protocol and new validation IDs."

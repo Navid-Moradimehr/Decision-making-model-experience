@@ -1,0 +1,29 @@
+schema: phase15_d154_finalize_v3
+status: exploratory_finalize_preserved_v2_fits
+amendment: reports/phase15_d154_finalize_amendment_v3.md
+parents:
+  d154_v2_lock: experiments/phase15_d154_decision_aligned_v2.lock.json
+  d154_v2_memorization: artifacts/runs/phase15_d154_decision_aligned_v2/memorization.json
+  d154_v2_t1: artifacts/runs/phase15_d154_decision_aligned_v2/T1_regret_regression.npz
+  d154_v2_t2: artifacts/runs/phase15_d154_decision_aligned_v2/T2_margin_weighted_pairwise.npz
+  d154_v2_t3_tau_0125: artifacts/runs/phase15_d154_decision_aligned_v2/T3_listwise_tau_0.125.npz
+  d154_v2_t3_tau_025: artifacts/runs/phase15_d154_decision_aligned_v2/T3_listwise_tau_0.25.npz
+  d154_v2_t3_tau_05: artifacts/runs/phase15_d154_decision_aligned_v2/T3_listwise_tau_0.5.npz
+  d154_finalize_v2_lock: experiments/phase15_d154_finalize_v2.lock.json
+  d154_finalize_v2_abort_report: reports/phase15_d154_finalize_v2_abort.md
+outputs:
+  lock: experiments/phase15_d154_finalize_v3.lock.json
+  run_dir: artifacts/runs/phase15_d154_finalize_v3
+  report: reports/phase15_d154_decision_aligned_result_v3.md
+scope:
+  reuse_existing_student_checkpoints_only: true
+  retrain: false
+  simulator_calls: false
+  planner_calls: false
+  new_transitions: false
+  new_episodes: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+  test_or_reserve_access: false

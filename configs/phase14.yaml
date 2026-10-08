@@ -1,0 +1,133 @@
+phase: 14
+name: inertial_corridor_first_action_value_learnability
+status: protocol_frozen_before_phase14_outcomes
+updated: 2026-09-28
+
+question: >-
+  Can the exact shooting planner's receding-horizon decision rule be represented
+  as a learnable first-action value function of deployable state?
+
+scope:
+  benchmark: inertial_corridor
+  previous_phase13a: closed_failed_preregistered_latency_gate; immutable
+  source_data: artifacts/runs/phase12_train_teacher_v1
+  source_split: phase12_train_teacher_only
+  source_seed_range: {start: 140000, count: 120}
+  reserve: {start: 130000, count: 200, status: sealed}
+  forbidden: [dagger, jepa, learned_world_model, rlcd, representation_distillation, new_environment]
+
+provenance:
+  source_audit: artifacts/runs/phase14_training_source_audit_v2.json
+  source_lock: experiments/phase14_source_lock_v2.json
+  audit_output: artifacts/runs/phase14_teacher_audit_v2
+  diagnostic_output: artifacts/runs/phase14_teacher_audit_v2/forced_action_values.jsonl
+
+teacher:
+  definition: force_one_primitive_action_then_resume_exact_phase12_shooting_until_terminal
+  legal_action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  coast_action_id: 0
+  continuation: {horizon: 8, sequences: 128, planner: exact_phase12_teacher}
+  proposal_seed_schedule: "(source_episode_seed * 1000003 + absolute_elapsed_steps) mod 2^32"
+  common_random_numbers_across_forced_actions: true
+  objective:
+    tuple: [terminal_class, conditional_primary_cost, control_effort]
+    terminal_class_order: {success: 0, timeout: 1, collision: 2}
+    primary_cost: successful_episode_steps_if_success_else_terminal_goal_distance
+    control_effort: total_noncoast_actions_in_forced_action_plus_continuation
+    scalarization: forbidden
+    exact_tuple_equality_is_tie: true
+  regret:
+    rank: average_rank_within_each_nine_action_state
+    normalized: "(average_rank - best_average_rank) / 8"
+  repeatability:
+    states: first_8_of_frozen_32_state_diagnostic
+    repeat_all_9_actions: true
+    require_exact: [terminal_status, steps, effort, objective_tuple, ranks, regrets]
+  diagnostic:
+    state_count: 32
+    state_selection: hash_rank_32_distinct_layouts_from_replayed_train_states
+    selection_salt: phase14-first-action-audit-v1
+    min_states_with_nonzero_regret_fraction: 0.75
+    min_distinct_optimal_action_ids: 3
+    near_tie_diagnostic_only:
+      success_primary_difference_steps_at_most: 1
+      failure_goal_distance_difference_at_most: 0.01
+      does_not_change_exact_teacher_ranks: true
+  store:
+    - source_episode_seed
+    - source_layout_sha256
+    - source_decision_index
+    - public_state_features_52
+    - forced_action_id
+    - forced_successor_public_state
+    - terminal_status
+    - terminal_steps_from_source
+    - terminal_goal_distance
+    - total_noncoast_effort
+    - structured_objective_tuple
+    - average_rank
+    - normalized_regret
+    - continuation_decision_count
+
+data:
+  replay_only: phase12_train_teacher_v1
+  expected_layouts: 120
+  expected_source_states: 2095
+  read_forbidden: [phase12_validation_teacher_v1, dagger_splits, reserve]
+  student_input_allowlist: [public_state_features_52, fixed_action_id_semantics]
+  teacher_only: [forced_successor, terminal_state, outcome_tuple, effort, rank, regret]
+  forbidden_student_inputs: [episode_seed, layout_hash, decision_index, teacher_tuple, regret, terminal_state, future_state]
+  diagnostic_nested_states:
+    n: [1, 8, 32]
+    selection: first_n_of_hash_ranked_one_state_per_distinct_layout
+  one_layout_stage: all_archived_decision_states_from_hash_first_diagnostic_layout
+  full_training_stage: all_2095_archived_decision_states_across_120_train_layouts
+
+learnability:
+  synthetic_integrity:
+    rule: "vx > 0.2 chooses negative-x braking action 1; otherwise positive-x acceleration action 2"
+    require_correct_non_tied_action_order: true
+  memorization_ladder: [1_state, 8_states, 32_states, one_layout, full_training_split]
+  advancement:
+    max_mean_normalized_decision_regret: 0.01
+    require_correct_order_for_pairs_outside_near_tie_tolerance: true
+    at_least_one_simple_learner_must_pass_each_rung: true
+  inputs:
+    raw: public_state_features_52
+    physics_engineered: [relative_goal_xy, goal_distance, speed_fraction, forward_velocity_fraction, lateral_velocity_fraction, goal_alignment, nearest_obstacle_clearance, discrete_braking_distance]
+    future_information: forbidden
+  learners:
+    - nearest_neighbor_diagnostic
+    - decision_tree_diagnostic
+    - gradient_boosted_tree_diagnostic
+    - tiny_mlp
+  mlp: {hidden: [64, 64], activation: relu, output_regret: 9, output_structured_q: 27, max_parameters: 10000}
+  target_variants: [structured_q_component_regression, within_state_normalized_regret_regression]
+  cpu_only: true
+
+heldout:
+  only_after_memorization_pass: true
+  model_selection_layouts: {start: 191000, count: 40, states_per_layout: 2, teacher_trajectory_fractions: [0.33, 0.67]}
+  offline_gate_layouts: {start: 191040, count: 40, states_per_layout: 2, teacher_trajectory_fractions: [0.33, 0.67]}
+  closed_loop_development_layouts: {start: 192000, count: 100}
+  hash_audit_required_before_outcomes: true
+  offline_gate:
+    primary: student_mean_normalized_regret_improvement_over_geometry
+    min_improvement: 0.05
+    paired_layout_bootstrap_lower_95_must_exceed: 0.0
+    resamples: 10000
+    seed: 141011
+  closed_loop_gate_before_outcomes:
+    retain_fraction_of_shooting_minus_geometry_success_gap_at_least: 0.5
+    paired_success_advantage_over_geometry_lower_95_above: 0.0
+    collision_difference_upper_95_at_most: 0.02
+    student_median_latency_at_most_fraction_of_shooting: 0.5
+    resamples: 10000
+    seed: 142011
+
+resources:
+  device: cpu
+  max_wall_seconds_per_stage: 10800
+  max_generated_bytes_per_stage: 20971520
+  overwrite_forbidden: true
+  reserve_access: false

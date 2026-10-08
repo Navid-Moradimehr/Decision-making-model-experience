@@ -1,0 +1,45 @@
+schema: phase15_frozen_checkpoint_training_fit_audit_v1
+status: authorized_read_only_audit
+parents:
+  prior_result: artifacts/runs/phase15_fullsplit_objective_generalization_v1/result.json
+  prior_manifest: artifacts/runs/phase15_fullsplit_objective_generalization_v1/manifest.json
+  prior_lock: experiments/phase15_fullsplit_objective_generalization.lock.json
+  feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  feature_manifest: artifacts/runs/phase15_offline_v2/features/manifest.json
+  regression_checkpoint: artifacts/runs/phase15_fullsplit_objective_generalization_v1/regression_checkpoint.npz
+  pairwise_checkpoint: artifacts/runs/phase15_fullsplit_objective_generalization_v1/pairwise_checkpoint.npz
+checkpoint_dir: artifacts/runs/phase15_fullsplit_objective_generalization_v1
+train_split:
+  name: train
+  layout_count: 60
+  row_count: 571
+  layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  target: saved normalized teacher forced-action regrets
+  features: R0 state-only 61D
+models: [regression, pairwise]
+scope:
+  load_frozen_checkpoints: true
+  score_training_rows_only: true
+  fit_or_update_weights: false
+  read_validation_rows: false
+  read_test_rows: false
+  recompute_any_heldout_metric: false
+  simulator_or_planner_calls: false
+  reserve_access: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+diagnostic_thresholds:
+  strong_train_fit_mean_layout_macro_regret_max: 0.1
+  strong_train_fit_best_action_agreement_min: 0.9
+  large_validation_train_regret_gap_min: 0.15
+  recorded_validation_macro_regret:
+    regression: 0.41029432236604313
+    pairwise: 0.3510361523030522
+interpretation:
+  strong_train_fit_with_large_gap: layout/generalization limitation plausible; does_not_authorize_dagger
+  weak_train_fit: current_R0_student_not_fitting_teacher; investigate_features_or_objective
+  strong_train_fit_without_large_gap: recheck recorded validation/test metrics; no new test scoring
+outputs:
+  run_dir: artifacts/runs/phase15_training_fit_audit_v1
+  report: reports/phase15_training_fit_audit_result.md

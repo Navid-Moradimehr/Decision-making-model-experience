@@ -1,0 +1,117 @@
+schema: phase16c-prior-guided-planner-v1
+status: locked_protocol
+purpose: fresh_development_equal_sequence_budget_prior_guidance
+parents:
+  phase16b_protocol: reports/phase16b_protocol.md
+  phase16b_score_protocol: reports/phase16b_score_correction_protocol.md
+  phase16b_score_lock: experiments/phase16b_score_correction_v1.lock.json
+  phase16b_score_result: artifacts/runs/phase16b_score_correction_v1/result.json
+  d153_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  phase16a_result: artifacts/runs/phase16_contract_repair_v1/result.json
+  phase16a_progress: artifacts/runs/phase16_contract_repair_v1/states.jsonl
+training_data:
+  expected_d153_rows: 1365
+  source_states: 128
+  source_layouts: 64
+  search_replicates_per_state_action: 3
+  actions_per_state: 9
+environment:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  generator_sha256: 47CC5FF39643428EBA6D031C377402FF585B83FE5AE63E8217927308D08DAA1E
+  task: three_baffle_two_openings
+  seed_start: 198000
+  layout_count: 100
+  grouping_unit: layout_sha256
+  paired_initial_conditions: true
+  old_d168_g2_block_preserved_unopened: [197000, 197100]
+  reserve_block_sealed: [130000, 130200]
+prior:
+  representation: d164_canonical_63
+  action_representation: normalized_physical_vectors_9x2
+  architecture: shared_action_conditioned_mlp
+  hidden: [64, 64]
+  activation: relu
+  dropout: 0.0
+  optimizer: AdamW
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  epochs: 400
+  initialization_seed: 160301
+  device: cuda_if_available
+  deterministic_algorithms: true
+  cublas_workspace_config: ":4096:8"
+  loss: binary_cross_entropy_with_logits
+  target: empirical_collision_frequency_from_three_phase16a_replicates
+  checkpoint: minimum_training_binary_cross_entropy
+  score_interpretation: uncalibrated_ranking_score
+  action_rank: ascending_collision_score_average_ties
+  proposal_weight: inverse_rank
+  inverse_rank_formula: 1/(1+average_rank)
+planning:
+  exact_dynamics: true
+  horizon: 8
+  sequences_per_decision: 128
+  replanning: after_each_executed_first_action
+  objective: phase11_exact_lexicographic_success_steps_effort_then_progress_effort
+  common_random_numbers: paired_uniform_quantiles_per_layout_and_decision
+  query_seed_formula: (layout_seed*1000003+decision_index) mod 2^32
+  query_seed_multiplier: 1000003
+  constant_action_sequences_always_included: true
+  sequence_uniqueness_required: true
+  exact_candidate_tie_break: lexicographic_action_sequence
+  prior_influences: first_action_proposals_only
+  prior_does_not_score_or_filter_sequences: true
+  fill_rule_after_duplicate_rejection: paired_uniform_sequence_stream
+  maximum_attempt_multiplier: 10000
+evaluation:
+  methods:
+    - uniform_exact_shooting
+    - canonical_rank_prior_exact_shooting
+    - geometry_waypoint_descriptive
+  waypoint:
+    resolution: 0.04
+    tolerance: 0.03
+  paired_bootstrap:
+    unit: layout_sha256
+    draws: 10000
+    seed: 160301
+  latency: [median, p90]
+  report:
+    - safe_success_rate
+    - collision_rate
+    - timeout_rate
+    - actions_to_terminal
+    - sequences_per_decision
+    - exact_transitions_per_decision
+    - sequence_objective_tie_rate
+    - duplicate_rejection_count
+    - fallback_fill_count
+    - wall_latency_per_decision
+gates:
+  useful_prior_guidance:
+    success_gain_at_least: 0.03
+    paired_95_ci_lower_above: 0.0
+    collision_increase_95_ci_upper_at_most: 0.02
+  fail_closed_if:
+    prior_model_training_data_parity_fails: true
+    layout_hash_overlap: true
+    unequal_unique_sequence_budget: true
+    reserve_or_test_access: true
+scope:
+  new_outcomes_allowed_only_for_locked_development_block: true
+  training_data: d153_train_plus_phase16a_training_labels_only
+  validation_access: false
+  d168_block_access: false
+  reserve_access: false
+  test_access: false
+  dagger: false
+  student_control: false
+  learned_world_model: false
+  environment_search: false
+outputs:
+  run_dir: artifacts/runs/phase16c_prior_guided_planner_v1
+  layout_audit: artifacts/runs/phase16c_prior_guided_planner_v1/layout_audit.json
+  checkpoint: artifacts/runs/phase16c_prior_guided_planner_v1/canonical_prior_seed160301.pt
+  episodes: artifacts/runs/phase16c_prior_guided_planner_v1/episodes.jsonl
+  result: artifacts/runs/phase16c_prior_guided_planner_v1/result.json
+  manifest: artifacts/runs/phase16c_prior_guided_planner_v1/manifest.json

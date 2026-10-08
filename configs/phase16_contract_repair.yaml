@@ -1,0 +1,49 @@
+schema: phase16-contract-repair-v1
+name: teacher-metric-fit-integrity
+created: 2026-10-03
+parent_commit: 350a578
+source_data:
+  training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d168_replay: artifacts/runs/phase15_d168_latent_intervention_v1/training_trajectories.npz
+scope:
+  split: d153_train_only
+  layouts: 64
+  states_per_layout: 2
+  planner_search_replicates: 3
+  reserve_access: false
+  test_access: false
+  fresh_layout_outcomes: false
+  student_closed_loop: false
+  dagger: false
+teacher:
+  actions: all_9_legal_primitive_actions
+  continuation: force_once_then_frozen_receding_horizon_shooting
+  search_bank: 128_sequences_horizon_8
+  replicate_zero: frozen_phase12_query_seed_for_exact_parity
+  replicate_seed_stride: 104729
+  common_random_numbers: same_replicate_and_absolute_elapsed_step_across_forced_actions
+metrics:
+  historical_rank_regret: retain_for_compatibility_only
+  primary_teacher_stability:
+    terminal_outcome_disagreement_rate: true
+    best_action_set_jaccard: true
+    pairwise_order_agreement: true
+  physical_outcomes:
+    collision_rate: true
+    success_rate: true
+    timeout_rate: true
+    success_steps_and_effort: true
+  bootstrap_unit: layout
+  bootstrap_resamples: 10000
+  bootstrap_seed: 169001
+gates:
+  stable_if:
+    terminal_outcome_disagreement_upper_95_ci_at_most: 0.05
+    mean_best_set_jaccard_lower_95_ci_at_least: 0.80
+  unstable_if:
+    terminal_outcome_disagreement_lower_95_ci_above: 0.05
+    OR_best_set_jaccard_upper_95_ci_below: 0.80
+  otherwise: inconclusive_and_increase_only_train_audit_precision_before_student_fit
+artifacts:
+  run_dir: artifacts/runs/phase16_contract_repair_v1
+  report: reports/phase16a_teacher_metric_integrity.md

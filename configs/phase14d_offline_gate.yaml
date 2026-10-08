@@ -1,0 +1,60 @@
+phase: 14
+stage: phase14d_independent_offline_gate
+schema: phase14d_offline_gate_config_v2
+status: v1_pre_data_software_failure_preserved_v2_prepared
+updated: 2026-09-29
+
+parent:
+  phase14d_config: configs/phase14d.yaml
+  phase14d_selection_lock: experiments/phase14d_model_selection_v2.lock.json
+  phase14d_selection_manifest: artifacts/runs/phase14d_model_selection_v2/manifest.json
+  phase14d_selection_metrics: artifacts/runs/phase14d_model_selection_v2/metrics.json
+  phase14d_selection_labels: artifacts/runs/phase14d_model_selection_v2/teacher_labels.jsonl
+  phase14d_selection_report: reports/phase14d_model_selection_v2_result.md
+  phase14d_layout_audit: artifacts/runs/phase14d_layout_hash_audit_v2.json
+  training_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  training_manifest: artifacts/runs/phase14b_training_labels_resume_v1/manifest.json
+  previous_v1_lock: experiments/phase14d_offline_gate_v1.lock.json
+  previous_v1_run_dir: artifacts/runs/phase14d_offline_gate_v1
+  previous_v1_manifest: artifacts/runs/phase14d_offline_gate_v1/manifest.json
+  previous_v1_failure_report: reports/phase14d_offline_gate_v1_pre_data_failure.md
+
+selected_model:
+  derived_from_locked_selection_result: true
+  learner: decision_tree
+  feature_variant: raw52_plus_physics9
+  target_variant: within_state_normalized_regret9
+  fit_split: phase14b_training_records_only
+  fit_seed: 141400
+  action_selection: argmin_predicted_normalized_regret_lowest_action_id_tie_break
+  no_hyperparameter_changes: true
+
+offline_gate:
+  seed_start: 191040
+  layout_count: 40
+  states_per_layout: 2
+  trajectory_fractions: [0.33, 0.67]
+  geometry: {route: A_star_from_initial_state, resolution: 0.04, waypoint_tolerance: 0.03}
+  exact_teacher: {horizon: 8, sequences: 128, seed_schedule: "(episode_seed * 1000003 + absolute_elapsed_steps) mod 2^32"}
+  primary: geometry_layout_macro_regret_minus_student_layout_macro_regret
+  minimum_point_improvement: 0.05
+  paired_layout_bootstrap_lower_95_strictly_positive: true
+  bootstrap: {resamples: 10000, seed: 141011, confidence: 0.95}
+  no_model_selection_or_tuning_on_gate: true
+
+scope:
+  labels: offline_gate_only
+  closed_loop: false
+  dagger: false
+  learned_world_model: false
+  reserve_access: false
+
+resources:
+  wall_time_seconds: null
+  storage_bytes: null
+  note: user_removed_project_wide_wall_time_and_storage_caps_on_2026_09_29
+
+outputs:
+  lock: experiments/phase14d_offline_gate_v2.lock.json
+  run_dir: artifacts/runs/phase14d_offline_gate_v2
+  report: reports/phase14d_offline_gate_v2_result.md

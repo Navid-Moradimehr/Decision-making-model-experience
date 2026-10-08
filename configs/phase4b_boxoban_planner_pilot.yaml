@@ -1,0 +1,47 @@
+project:
+  name: consequence-lab
+  phase: 4B-0
+  protocol: boxoban_training_planner_label_pilot_v1
+  authorization: D045_training_split_only
+  training_pilot_authorized: true
+  validation_access_authorized: false
+  student_training_authorized: false
+  gpu_hours: 0
+  max_cpu_seconds: 3600
+  max_generated_artifact_bytes: 2000000000
+
+dataset:
+  repository: https://github.com/google-deepmind/boxoban-levels
+  revision: 78011d8c86ad423bfb2e1005012393b4c3c24409
+  split: medium/train
+  level_count: 450000
+  levels_per_shard: 1000
+  level_sample_count: 16
+  sample_hash_prefix: "consequence-lab/phase4b-training-pilot-v1:"
+  exclude_stage0_ids_from_fit: true
+  preserve_all_selected_levels_in_denominator: true
+  validation_and_test_content_access: forbidden
+
+solver:
+  reference_heuristic: manhattan_assignment
+  comparison_heuristic: static_push_assignment
+  exact_max_expansions_per_level: 2000000
+  exact_timeout_seconds_per_level: 60
+  bounded_expansion_budgets: [1000, 10000, 100000]
+  bounded_timeout_seconds_per_budget: 10
+  unresolved_is_not_unsolvable: true
+  expected_exact_cost_agreement: true
+
+teacher_cost_pilot:
+  authorized: false
+  maximum_states: 0
+  generate_policy_training_data: false
+  defer_until_fresh_validation_gate: true
+
+artifacts:
+  run_directory: artifacts/runs/phase4b_boxoban_planner_pilot_v1
+  refuse_overwrite: true
+  save_selected_training_level_text_only: true
+  save_source_shard_hashes: true
+  save_solver_paths: true
+  save_action_cost_queries: true

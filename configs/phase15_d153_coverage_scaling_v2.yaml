@@ -1,0 +1,117 @@
+schema: phase15_d153_coverage_scaling_v2
+status: protocol_amended_prelock
+prompt_source: new Prompt.md
+parents:
+  prompt: new Prompt.md
+  d152_lock: experiments/phase15_representation_sufficiency.lock.json
+  d152_manifest: artifacts/runs/phase15_representation_sufficiency_v1/manifest.json
+  d152_result: artifacts/runs/phase15_representation_sufficiency_v1/result.json
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d152_predictions: artifacts/runs/phase15_representation_sufficiency_v1/train_validation_predictions.npz
+  d150_r0_checkpoint: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d150_r4_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+  phase14f_student: experiments/phase14f_student_cart_v1.json
+  phase14f_student_manifest: experiments/phase14f_student_cart_v1.manifest.json
+  phase14g_lock: experiments/phase14g_trace_v1.lock.json
+  phase14g_manifest: artifacts/runs/phase14g_trace_v1/manifest.json
+  phase14b_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  d153_audit_result: artifacts/runs/phase15_d153_validation_audit_v1/result.json
+  d153_audit_manifest: artifacts/runs/phase15_d153_validation_audit_v1/manifest.json
+  d153_audit_report: reports/phase15_d153_validation_coverage_analysis.md
+  d153_audit_config: configs/phase15_d153_validation_audit.yaml
+  d153_audit_script: scripts/audit_d153_validation_coverage.py
+  d153_audit_module: src/consequence_lab/phase15_d153.py
+  d153_audit_test: tests/test_phase15_d153.py
+  d153_original_config: configs/phase15_d153_coverage_scaling.yaml
+  d153_original_protocol: reports/phase15_d153_coverage_scaling_protocol.md
+  d153_aborted_lock: experiments/phase15_d153_coverage_scaling.lock.json
+  d153_aborted_manifest: artifacts/runs/phase15_d153_coverage_scaling_v1/manifest.json
+  d153_aborted_dataset: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_aborted_accounting: artifacts/runs/phase15_d153_coverage_scaling_v1/collector_accounting.json
+  d153_abort_report: reports/phase15_d153_coverage_scaling_abort.md
+fixed_split:
+  train_layout_count: 60
+  train_row_count: 571
+  train_layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  validation_layout_count: 20
+  validation_row_count: 202
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+layout_design:
+  fresh_seed_start: 194000
+  fresh_layout_count: 140
+  reserve_seed_start: 130000
+  reserve_layout_count: 200
+  historical_forbidden_ranges:
+    - [192000, 100]
+    - [193000, 100]
+  nested_sizes: [10, 20, 40, 60, 100, 150, 200]
+  old_layout_ranking_salt: "D153-old-layout-v1:"
+  fresh_layout_ranking_salt: "D153-fresh-layout-v1:"
+reused_corpus:
+  dataset: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  dataset_sha256: 6F78AB42EBC9EC3E26D957C95785F6A4A4D6991C6958D8D7B4513CBC0C7C0A52
+  collector_accounting_sha256: AB35B3CA49789705FD5FD5850D726C3C74169CBA7F7FF11EF7F6E4AB022BC3D7
+  expected_state_rows: 1365
+  expected_branch_count: 12285
+  original_manifest: artifacts/runs/phase15_d153_coverage_scaling_v1/manifest.json
+  original_accounting: artifacts/runs/phase15_d153_coverage_scaling_v1/collector_accounting.json
+dataset:
+  collector: frozen_phase14f_cart_only
+  actions: 9
+  student_visible_fields: [student_runtime_input_52]
+  target_fields: [terminal_outcome_onehot_4, normalized_terminal_steps, normalized_terminal_goal_distance, normalized_noncoast_effort]
+  include_teacher_cost_or_regret_as_predictor_input: false
+  include_terminal_state_as_predictor_input: false
+  layout_balanced: true
+predictor:
+  class: ActionSummaryMLP
+  action_encoding: fixed_9_way_onehot
+  input_dimension: 70
+  hidden: [32, 32]
+  output_dimension: 7
+  seed: 152015
+  epochs: 800
+  learning_rate: 0.002
+  l2: 0.00001
+  input_standardization: subset_train_only
+  output: sigmoid
+  loss: layout_balanced_mse
+  checkpoint: minimum_training_objective
+  validation_checkpoint_selection: false
+  d60_saved_d152_prediction_reproduction_absolute_tolerance: 0.0000000001
+  d60_saved_d152_metric_reproduction_absolute_tolerance: 0.0000000001
+coverage:
+  fixed_distance_normalization: d152_original_train_mean_std
+  original_train_layouts: 60
+  train_loo_p90_cutoff: 1.8763452093839004
+  support_threshold_multipliers: [1.0, 2.0]
+metrics:
+  summary: [aggregate_rmse, aggregate_mae, outcome_accuracy, success_precision_recall_f1, collision_precision_recall_f1, terminal_steps_mae_rmse, terminal_goal_distance_mae_rmse, noncoast_effort_mae_rmse]
+  decisions: [layout_macro_normalized_regret, state_micro_catastrophic_fraction_regret_ge_0_5, best_action_set_agreement]
+  coverage: [nearest_distance_median, nearest_distance_p90, fraction_inside_fixed_train_loo_p90, fraction_inside_twice_fixed_train_loo_p90]
+gates:
+  coverage_material: {median_distance_relative_drop_min: 0.25, p90_distance_relative_drop_min: 0.20}
+  prediction_material: {aggregate_validation_rmse_relative_drop_min: 0.20}
+  decision_material: {macro_regret_absolute_drop_min: 0.05, catastrophic_fraction_absolute_drop_min: 0.05}
+  summary_not_material_below: 0.10
+  saturation: {d150_to_d200_distance_relative_gain_below: 0.05, rmse_relative_gain_below: 0.05, regret_absolute_change_below: 0.02, catastrophic_absolute_change_below: 0.02}
+resources:
+  collection_wall_seconds_max: 21600
+  generated_bytes_max: 1073741824
+scope:
+  test_rows_indexed_or_scored: false
+  reserve_access: false
+  active_or_adaptive_collection: false
+  learned_student_closed_loop_evaluation: false
+  frozen_collector_training_layout_rollouts: true
+  planner_counterfactual_labels_for_training: true
+  predictor_training: true
+  dagger: false
+  world_model_or_jepa: false
+  representation_distillation: false
+  final_evaluation: false
+outputs:
+  lock: experiments/phase15_d153_coverage_scaling_v2.lock.json
+  d60_gate: artifacts/runs/phase15_d153_d60_reproduction_gate_v2/gate.json
+  run_dir: artifacts/runs/phase15_d153_coverage_scaling_v2
+  report: reports/phase15_d153_coverage_scaling_result_v2.md

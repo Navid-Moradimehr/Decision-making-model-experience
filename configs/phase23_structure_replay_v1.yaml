@@ -1,0 +1,43 @@
+schema: phase23-structure-replay-v1
+status: design-frozen-not-execution-locked
+inputs:
+  - block: phase21
+    run_dir: artifacts/runs/phase21_shifted_b32_confirmation_v1
+    seed_start: 206000
+    layout_count: 500
+    block_offset: 0
+  - block: phase22
+    run_dir: artifacts/runs/phase22_mutation_confirmation_v1
+    seed_start: 207000
+    layout_count: 500
+sample:
+  method: shifted_b32
+  replicas: [0, 1, 2]
+  one_decision_per_episode: true
+  index_formula: "1 + ((seed * 1000003 + replica * 2654435769 + block_offset) mod min(8, decision_count - 3))"
+  require_decisions_after_selected_index: 2
+planner:
+  horizon: 8
+  budget: 32
+  action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  mandatory_constant_sequences: 9
+  shift: "call phase20_exact_plan_warmstart.shifted_plan unchanged"
+quality_sets:
+  top_k: 3
+  safe_success: "exact final status == success"
+neighborhood:
+  radius_0: shifted_sequence
+  radius_1: {mode: exhaustive_exact_shell, candidates: 64}
+  radius_2: {mode: seeded_uniform_exact_shell_sample, candidates: 64}
+  radius_3: {mode: seeded_uniform_exact_shell_sample, candidates: 64}
+  distance: horizon_hamming
+  deduplicate_scores: true
+gates:
+  exact_replay_parity_required_for_every_sample: true
+  mismatch_action: invalidate_entire_replay
+  reserve_test_d168_access: false
+  training: false
+  control_integration: false
+outputs:
+  run_dir: artifacts/runs/phase23_structure_replay_v1
+  lock: experiments/phase23_structure_replay_v1.lock.json

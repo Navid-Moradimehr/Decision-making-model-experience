@@ -1,0 +1,139 @@
+schema: phase15_d158_relational_selection_v2
+status: exploratory_offline_decision_alignment_study_tie_gate_amendment
+protocol: reports/phase15_d158_amendment_v1.md
+parents:
+  d157_correction_lock: experiments/phase15_d157_score_correction.lock.json
+  d157_correction_manifest: artifacts/runs/phase15_d157_score_correction_v1/manifest.json
+  d157_correction_result: artifacts/runs/phase15_d157_score_correction_v1/result.json
+  d157_rows: artifacts/runs/phase15_d157_fresh_confirmation_v1/fresh_confirmation_rows.npz
+  d157_accounting: artifacts/runs/phase15_d157_fresh_confirmation_v1/episode_accounting.json
+  d157_original_lock: experiments/phase15_d157_fresh_confirmation.lock.json
+  d157_original_abort: artifacts/runs/phase15_d157_fresh_confirmation_v1/abort.json
+  d158_v1_lock: experiments/phase15_d158_relational_selection.lock.json
+  d158_v1_abort: artifacts/runs/phase15_d158_relational_selection_v1/abort.json
+  d154_v2_lock: experiments/phase15_d154_decision_aligned_v2.lock.json
+  d154_listwise_r0: artifacts/runs/phase15_d154_decision_aligned_v2/T3_listwise_tau_0.25.npz
+  d154_finalize_lock: experiments/phase15_d154_finalize_v3.lock.json
+  d154_manifest: artifacts/runs/phase15_d154_finalize_v3/manifest.json
+  d154_result: artifacts/runs/phase15_d154_finalize_v3/result.json
+  d150_r0_head: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d155_stage_a_head: artifacts/runs/phase15_d155_stage_a_v2/F_outcome_steps.npz
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+  d155_stage_c_constant: artifacts/runs/phase15_d155_stage_c_v1/per_action_constant.npz
+  d155_stage_c_cart: artifacts/runs/phase15_d155_stage_c_v1/bounded_cart.json
+  d155_stage_c_mlp: artifacts/runs/phase15_d155_stage_c_v1/action_conditioned_mlp.npz
+  d155_stage_c_lock: experiments/phase15_d155_stage_c.lock.json
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d152_lock: experiments/phase15_representation_sufficiency.lock.json
+  d153_train_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+training:
+  d152_split_source: frozen_D152_train_validation_split
+  d152_train_rows: 571
+  d152_train_layouts: 60
+  d152_validation_rows: 202
+  d152_validation_layouts: 20
+  d153_fresh_training_rows: 1365
+  d153_fresh_training_layouts: 140
+  combined_train_rows: 1936
+  combined_train_layouts: 200
+  d152_validation_is_reused_exploratory: true
+  heldout_rows: d157_locked_fresh_development_rows
+  heldout_rows_count: 794
+  heldout_layouts: 100
+  heldout_block_is_exploratory_not_final_test: true
+  test_reserve_used: false
+targets:
+  preference: exact_within_state_phase14_normalized_rank_regret
+  collision: exact_R4_collision_terminal_indicator_column_3
+  exact_compact_consequences: terminal_outcome_classes_success_timeout_collision_plus_normalized_steps
+  outcome_class_order: [success, timeout, collision]
+  listwise_temperature: 0.25
+  catastrophic_regret_threshold: 0.5
+  safe_regret_at_most: 0.125
+  pairwise_minimum_regret_gap: 0.125
+  pairwise_safe_collision_weight_multiplier: 3.0
+  pairwise_safe_catastrophic_weight_multiplier: 3.0
+representations:
+  candidate_action_features: 9d_primitive_action_onehot
+  candidate_consequences: [predicted_outcome_probabilities_3d, predicted_steps_1d]
+  ablations: [r0_action_only, r0_action_predicted_outcome, r0_action_predicted_steps, r0_action_predicted_outcome_steps]
+  predicted_training_features: five_fold_layout_grouped_cross_fitted_frozen_D155_bounded_CART
+  crossfit_fold_id: sha256_layout_hex_prefix_integer_mod_5
+  validation_and_heldout_predictions: frozen_D155_bounded_CART
+  oracle_ablation: exact_outcome_plus_exact_steps
+model:
+  architecture: deep_sets_candidate_context
+  state_hidden: 24
+  candidate_hidden: 24
+  context_hidden: 24
+  shared_candidate_and_score_heads: true
+  candidate_position_embeddings: false
+  output_heads: [preference_utility, collision_logit]
+  optimizer: full_batch_adam
+  learning_rate: 0.002
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  l2: 0.00001
+  max_epochs: 600
+  patience: 60
+  train_only_state_standardization: true
+  checkpoint: minimum_validation_layout_macro_regret_then_validation_objective_loss
+  base_seed: 15800
+  objective_comparison:
+    - {id: listwise_tau_025, preference_loss: soft_teacher_cross_entropy, pairwise_weight: 0.0}
+    - {id: margin_pairwise, preference_loss: weighted_pairwise_softplus, pairwise_weight: 1.0}
+    - {id: listwise_plus_pairwise, preference_loss: listwise_plus_weighted_pairwise, pairwise_weight: 0.5}
+  collision_loss: layout_balanced_binary_cross_entropy
+  collision_loss_weight: 1.0
+  representation_ablation_objective: listwise_tau_025
+risk_policy:
+  thresholds: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+  validation_collision_recall_target: 0.9
+  selection: highest_threshold_meeting_validation_recall_target
+  if_none_meet: highest_validation_recall_then_highest_threshold_and_mark_gate_failed
+  veto_rule: reject_candidates_with_predicted_collision_probability_at_or_above_threshold
+  if_all_rejected: choose_lowest_predicted_collision_probability_then_preference_score
+  validation_only_threshold_selection: true
+metrics:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  high_margin_regret_gap_threshold: 0.25
+  safe_action_regret_at_most: 0.125
+  catastrophic_action_regret_at_least: 0.5
+  risk_policy_minimum_catastrophic_reduction: 0.1
+  risk_policy_maximum_regret_increase: 0.02
+  bootstrap_resamples: 10000
+  bootstrap_seed: 15815
+  confidence: 0.95
+  risk_average_precision: weighted_candidate_level_average_precision
+advancement_gate:
+  primary_model: r0_action_predicted_outcome_steps__listwise_tau_025
+  compare_against:
+    - B0_direct_D150_R0
+    - B1_D157_CART_predicted_then_frozen_StageA
+    - B2_D154_direct_listwise_R0
+  minimum_macro_regret_improvement: 0.05
+  minimum_catastrophic_fraction_improvement: 0.05
+  paired_layout_bootstrap_ci_lower_must_exceed_zero: true
+  safe_collision_pair_accuracy_minimum_gain_over_best_baseline: 0.05
+scope:
+  exact_targets_used_for_training_only: true
+  cross_fitting_frozen_compact_predictor: true
+  model_training: true
+  simulator_calls: false
+  planner_calls: false
+  new_transitions_or_episodes: false
+  student_closed_loop: false
+  dagger: false
+  world_model_training: false
+  jepa: false
+  iterative_refinement: false
+  test_rows: false
+  reserve_access: false
+  other_environment: false
+outputs:
+  lock: experiments/phase15_d158_relational_selection_v2.lock.json
+  run_dir: artifacts/runs/phase15_d158_relational_selection_v2
+  report: reports/phase15_d158_relational_selection_v2_result.md

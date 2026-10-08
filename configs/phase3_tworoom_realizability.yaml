@@ -1,0 +1,97 @@
+project:
+  name: consequence-lab
+  phase: 3
+  protocol: tworoom_teacher_realizability_v1
+  status: preregistered_3a_only
+  authorized_experiment: 3A
+  device: cpu
+  max_cpu_minutes: 30
+  max_gpu_hours: 0
+  generated_artifact_target_bytes: 100000000
+  generated_artifact_stop_bytes: 2000000000
+
+environment:
+  id: swm/TwoRoom-v1
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  task: known_goal_fixed_geometry
+  max_episode_steps: 200
+  success_distance_px: 16.0
+  observation_fields:
+    agent_xy_px: [0, 2]
+    goal_xy_px: [2, 4]
+    door_centers_xy_px: [4, 10]
+  candidate_count: 65
+  candidate_horizon_steps: 64
+  fixed_geometry_values:
+    agent_speed: 5.0
+    agent_radius: 7.0
+    wall_axis: 1
+    wall_thickness: 10
+    door_count: 1
+    door_centers: [49.0, 49.0, 49.0]
+    door_half_extents: [14.0, 14.0, 14.0]
+    wall_center: 112.0
+    boundary_px: 14
+    image_size_px: 224
+
+data:
+  split_unit: complete_episode_seed
+  seed_range_convention: half_open
+  development_episode_seeds: [240000, 240064]
+  behavior_assignment:
+    simulator_truth_shooting: 22
+    greedy: 21
+    random: 21
+  sampled_states_per_episode: 4
+  sample_step_indices: [0, 50, 100, 150]
+  source: online_simulator_rollouts
+  student_input_allowlist: [observation, candidate_sequences, valid_candidate_mask]
+  teacher_only_fields:
+    - candidate_costs
+    - candidate_regrets
+    - candidate_reachability
+    - candidate_future_positions
+    - simulator_snapshot
+    - candidate_id
+    - episode_seed
+
+teacher:
+  kind: pinned_simulator_truth_receding_horizon_shooting
+  objective:
+    terminal_distance_weight: 1.0
+    mean_distance_weight: 0.1
+    distance_scale_px: 316.783527087894
+    absorbing_success: true
+  execution_steps_before_replanning: 1
+  candidate_tie_tolerance: 0.000001
+
+realizability:
+  exact_reconstruction_cost_tolerance: 0.000001
+  observation_reconstruction_tolerance: 0.000001
+  nearest_neighbor_radii_px: [1.0, 2.0, 5.0]
+  near_optimal_regret_epsilon: 0.01
+  alias_control: mask_goal_coordinates
+  nuisance_control_fields: [agent.color, target.color, background.color, rendering.render_target]
+  hard_gates:
+    unexplained_transition_or_objective_dependencies: 0
+    reconstruction_mismatches: 0
+    missed_intentional_alias_controls: 0
+    nuisance_control_cost_mismatches: 0
+  neighborhood_metrics_are_descriptive_only: true
+
+artifacts:
+  run_id: phase3a_tworoom_realizability_240000_240063
+  output_directory: artifacts/runs/phase3a_tworoom_realizability_240000_240063
+  save_episode_records: true
+  save_cost_matrices: true
+  save_candidate_futures: false
+  manifest_requires_dirty_source_hashes: true
+  report: reports/phase3a_tworoom_teacher_realizability.md
+
+stop_conditions:
+  - "Stop if any dynamic transition or objective variable is unavailable from observation or frozen task constants."
+  - "Stop if exact observation/cost reconstruction or nuisance controls fail; diagnose before student work."
+  - "Do not train a student in Experiment 3A."
+  - "Do not use final evaluation seeds for this experiment."
+  - "Do not treat finite-sample neighbor/classifier diagnostics as irreducible teacher error."
+  - "Do not continue if the 30 CPU-minute budget is exceeded."

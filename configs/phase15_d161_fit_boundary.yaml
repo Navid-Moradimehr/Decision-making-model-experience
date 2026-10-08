@@ -1,0 +1,86 @@
+schema: phase15_d161_fit_boundary_v1
+status: training_only_capacity_study_frozen
+protocol: reports/phase15_d161_protocol.md
+parents:
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+  d159_lock: experiments/phase15_d159_training_fit_v2.lock.json
+  d159_result: artifacts/runs/phase15_d159_training_fit_v2/result.json
+  d159_manifest: artifacts/runs/phase15_d159_training_fit_v2/manifest.json
+  d159_interpretation: reports/phase15_d159_interpretation.md
+  d160_lock: experiments/phase15_d160_convergence.lock.json
+  d160_result: artifacts/runs/phase15_d160_convergence_v1/result.json
+  d160_manifest: artifacts/runs/phase15_d160_convergence_v1/manifest.json
+  d160_r0_checkpoint: artifacts/runs/phase15_d160_convergence_v1/r0_action_only_converged_or_budget_checkpoint.npz
+  d160_predicted_checkpoint: artifacts/runs/phase15_d160_convergence_v1/r0_action_predicted_outcome_steps_converged_or_budget_checkpoint.npz
+  d160_oracle_checkpoint: artifacts/runs/phase15_d160_convergence_v1/r0_action_exact_outcome_steps_oracle_converged_or_budget_checkpoint.npz
+  d160_interpretation: reports/phase15_d160_interpretation.md
+data:
+  rows: 1365
+  layouts: 140
+  split_role: training_only
+  predictor_crossfit_folds: 5
+  predictor_fold_hash: sha256_layout_hex_prefix_integer_mod_5
+representations:
+  - r0_action_only
+  - r0_action_predicted_outcome_steps
+  - r0_action_exact_outcome_steps_oracle
+models:
+  widths: [24, 64]
+  width_24:
+    initialization: warm_start_from_D160_best_checkpoint
+    maximum_additional_epochs: 3000
+  width_64:
+    initialization: deterministic_fresh_initialization
+    seed: 16100
+    maximum_epochs: 5000
+  learning_rate: 0.002
+  l2: 0.00001
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  scheduler: null
+  optimizer: full_batch_adam
+  optimizer_state_checkpoint_interval_epochs: 25
+  best_checkpoint: minimum_training_listwise_plus_collision_objective
+  reset_adam_for_D160_warm_start: true
+  listwise_temperature: 0.25
+  collision_loss_weight: 1.0
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  state_standardization: exact_D153_training_rows_only
+convergence:
+  evaluate_every_epochs: 25
+  convergence_window_epochs: 1000
+  min_epochs_before_check: 2000
+  objective_relative_improvement_tolerance: 0.001
+  decision_metric_range_tolerance: 0.005
+  required_consecutive_converged_checks: 3
+  check_spacing_epochs: 250
+  checkpoint: minimum_training_objective
+fit_gate:
+  max_train_macro_regret: 0.05
+  max_train_catastrophic_fraction: 0.05
+  preserve_D159_gate: true
+selection:
+  rule: report_all_widths_and_representations_no_validation_selection
+  automatic_next_phase: false
+scope:
+  training_only: true
+  d152_validation_read: false
+  d157_read: false
+  test_rows: false
+  reserve_access: false
+  simulator_calls: false
+  planner_calls: false
+  new_transitions_or_episodes: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+outputs:
+  lock: experiments/phase15_d161_fit_boundary.lock.json
+  run_dir: artifacts/runs/phase15_d161_fit_boundary_v1
+  report: reports/phase15_d161_result.md

@@ -1,0 +1,52 @@
+schema: phase15_d164_representation_symmetry_audit_v1
+status: protocol_defined_not_scored
+protocol: reports/phase15_d164_protocol.md
+parents:
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_result: artifacts/runs/phase15_d153_coverage_scaling_v3/result.json
+  d153_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d162_lock: experiments/phase15_d162_fresh_layout_relational.lock.json
+  d162_manifest: artifacts/runs/phase15_d162_fresh_layout_relational_v1/manifest.json
+  d162_result: artifacts/runs/phase15_d162_fresh_layout_relational_v1/result.json
+  d162_rows: artifacts/runs/phase15_d162_fresh_layout_relational_v1/fresh_layout_rows.npz
+  d162_accounting: artifacts/runs/phase15_d162_fresh_layout_relational_v1/episode_accounting.json
+  environment: src/consequence_lab/inertial_corridor.py
+  task_generator: src/consequence_lab/corridor_tasks.py
+  state_features: src/consequence_lab/phase12_teacher.py
+  feature_builder: src/consequence_lab/phase14c.py
+  consequence_metrics: src/consequence_lab/phase15_decision_aligned.py
+  candidate_metrics: src/consequence_lab/phase15_d158.py
+  d155_metrics_config: configs/phase15_d155_stage_c.yaml
+analysis:
+  representations: [saved_R0_61D, agent_relative_canonical]
+  r0_reconstruction_absolute_tolerance: 1.0e-6
+  distance: train_standardized_per_feature_euclidean
+  neighbor_protocols:
+    - train_leave_layout_out
+    - D162_fresh_query_against_D153_training
+  transfer: nearest_neighbor_teacher_regret_vector_as_action_score
+  heldout_layout_states_are_reused_exploratory: true
+  no_model_fitting: true
+  physical_action_vectors:
+    source: ACTION_VECTORS_after_environment_diagonal_normalization
+    usage: structural_encoding_audit_only
+  symmetry_group: D4_square_workspace_signed_permutations
+  translation_claim: coordinate_reparameterization_only_when_boundaries_transform_too
+  reserve_or_test_access: false
+gates:
+  canonical_representation_supported_only_if:
+    nearest_distance_ratio_reduction_at_least: 0.10
+    target_macro_regret_improvement_at_least: 0.02
+    best_action_set_agreement_noninferiority_margin: 0.02
+  advance_to_D165_only_if: canonical_representation_supported
+scope:
+  saved_D153_D162_artifacts_only: true
+  new_task_labels_or_planner_calls: false
+  new_layouts: false
+  closed_loop_or_DAgger: false
+  model_training: false
+  reserve_or_test_access: false
+outputs:
+  lock: experiments/phase15_d164_representation_symmetry_audit.lock.json
+  run_dir: artifacts/runs/phase15_d164_representation_symmetry_audit_v1
+  report: reports/phase15_d164_result.md

@@ -1,0 +1,71 @@
+project:
+  name: consequence-lab
+  phase: 4
+  protocol: boxoban_medium_validation_screen_v1
+  authorization: D044_stage1_validation_screen_only
+  authorized_stage: stage1_validation_only
+  validation_screen_authorized: true
+  student_training_authorized: false
+  teacher_dataset_generation_authorized: false
+  max_gpu_hours: 0
+  max_cpu_seconds: 3600
+  max_generated_artifact_bytes: 2000000000
+
+dataset:
+  repository: https://github.com/google-deepmind/boxoban-levels
+  revision: 78011d8c86ad423bfb2e1005012393b4c3c24409
+  split: medium/valid
+  level_count: 50000
+  levels_per_shard: 1000
+  selection_count: 60
+  sampler_hash_input: "consequence-lab/phase4-boxoban-qualification-v1:{canonical_level_id}"
+  official_test_access: forbidden
+
+task:
+  action_limit: 500
+  actions: [up, right, down, left]
+  blocked_action_semantics: no_op
+  solved_when_all_boxes_on_goals: true
+
+solver:
+  objective: minimum_primitive_actions
+  algorithm: optimal_astar_or_dijkstra_with_reopening
+  deadlock_pruning: static_non_goal_corner_only
+  max_expanded_states_per_level: 2000000
+  timeout_seconds_per_level: 60
+  unresolved_is_not_unsolvable: true
+
+greedy_push:
+  player_reachability: flood_fill_without_push_search
+  box_goal_distances: reverse_push_bfs_static_walls
+  assignment: minimum_sum_over_box_goal_permutations
+  static_deadlock_rejection: non_goal_corner_only
+  push_lookahead: one_individual_push_only
+  ranking: [assignment_cost, stance_walk_distance, box_row_major, action_order, target_row_major]
+  action_order: [up, right, down, left]
+
+random:
+  per_level_seed: first_64_bits_sha256_of_protocol_and_level_id
+
+statistics:
+  primary_unit: level
+  primary_comparison: exact_minus_greedy_push_success
+  paired_bootstrap_replicates: 10000
+  paired_bootstrap_seed: 504001
+  confidence_interval: percentile_95
+  latency_percentiles: [50, 95]
+
+gate:
+  exact_solver_proofs_required: 60
+  unresolved_levels_allowed: 0
+  success_gain_point_minimum: 0.10
+  success_gain_ci95_lower_strictly_greater_than: 0.0
+  stop_before_student_training_if_failed: true
+
+artifacts:
+  run_directory: artifacts/runs/phase4_boxoban_validation_screen_v1
+  refuse_overwrite: true
+  save_selected_level_text_only: true
+  save_source_shard_hashes: true
+  save_per_level_method_results: true
+  save_teacher_targets: false

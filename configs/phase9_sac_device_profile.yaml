@@ -1,0 +1,49 @@
+phase: 9
+experiment: sac_cpu_vs_cuda_synthetic_profile
+scope: synthetic_optimizer_throughput_only_no_task_performance
+runtime:
+  platform: WSL2
+  python: "3.12.3"
+  torch: "2.7.1+cu118"
+  torch_cuda_runtime: "11.8"
+  stable_baselines3: "2.7.1"
+  gymnasium: "1.2.3"
+  numpy: "2.5.3"
+  pyyaml: "6.0.3"
+environment:
+  kind: deterministic_shape_matched_synthetic_gymnasium
+  observation_shape: [12]
+  action_shape: [2]
+  reward: 0.0
+  episode_length: 200
+  task_environment_imported: false
+devices: [cpu, cuda]
+torch_threads: 4
+repeats_per_device: 3
+training_steps_per_run: 2048
+base_seed: 990620
+run_order_seed: 990619
+minimum_free_cuda_memory_mib: 2048
+sac:
+  policy: MlpPolicy
+  network: [256, 256]
+  learning_rate: 0.0003
+  buffer_size: 4096
+  learning_starts: 256
+  batch_size: 256
+  train_frequency: 1
+  gradient_steps: 1
+  gamma: 0.99
+  tau: 0.005
+limits:
+  max_process_cpu_seconds_total: 900
+  max_process_cpu_seconds_per_run: 300
+  max_wall_seconds_total: 300
+  max_generated_artifact_bytes: 1048576
+artifact_policy:
+  stdout_timings_and_device_memory_only: true
+  save_returns: false
+  save_rewards: false
+  save_model: false
+  save_replay_buffer: false
+  save_training_log: false

@@ -1,0 +1,108 @@
+project:
+  name: consequence-lab
+  phase: phase2_reacher_planner_dev
+  status: preregistered_planner_development_screen
+  max_gpu_hours: 0
+  training_authorized: false
+  teacher_generation_authorized: false
+  student_training_authorized: false
+
+source:
+  stable_worldmodel_revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  lewm_source_revision: 8edfeb336732b5f3ce7b8b210d0ba370a09e2cac
+  checkpoint_revision: 62adae4b71dc474ddf8f794c476ebfe737a743ca
+  checkpoint_sha256: eb70b1fd5409f8f81875d62f5ee5a20dd220a3128a477de66b5760f475f0f469
+  checkpoint_config_sha256: 2564086e961e7b5c7c04dffc451091115b389a590645ff19653c64fd0bc16e09
+  supervised_predictor_run: artifacts/runs/phase2_reacher_predictor_scaling
+
+environment:
+  id: swm/ReacherDMControl-v0
+  task: qpos_match
+  episode_seed_range: [232000, 232020]
+  seed_range_convention: half_open
+  goal_generation: 25_uniform_bounded_actions_from_start_with_sentinel_target
+  goal_action_seed_offset: 10000
+  sentinel_qpos_offset: [100.0, 100.0]
+  action_horizon_env_steps: 25
+
+candidates:
+  action_shape: [25, 2]
+  flattened_optimizer_shape: [5, 10]
+  bounds: [-1.0, 1.0]
+  generators:
+    - mlp_cem
+    - native_lewm_cem
+    - uniform_random
+  cross_score_with:
+    - supervised_mlp
+    - native_lewm
+  same_population_evaluated_by_each_scorer: true
+  uniform_random_count: 300
+  uniform_random_seed_base: 505100
+  optimizer:
+    kind: bounded_diagonal_cem
+    samples_per_iteration: 300
+    iterations: 10
+    elites: 30
+    initial_std: 1.0
+    minimum_std: 0.05
+    mlp_seed_offset: 50000
+    native_lewm_seed_offset: 60000
+    seed_base: 505000
+    projection_before_scoring: true
+
+models:
+  supervised_mlp:
+    artifact: artifacts/runs/phase2_reacher_predictor_scaling/predictors.pt
+    frozen: true
+    hidden_dimensions: [256, 256]
+    action_sequence_flattened_dimension: 50
+    uses_current_latent_and_flattened_action_sequence: true
+    predictor_rolling_window: null
+  native_lewm:
+    checkpoint_frozen: true
+    predictor_rolling_window: 3
+  shared_goal_cost: final_predicted_latent_squared_l2_to_encoded_goal
+
+ground_truth:
+  roll_out_all_final_population_actions: true
+  sentinel_target_disables_early_termination: true
+  physical_cost: terminal_mean_absolute_qpos_error_divided_by_2pi
+  success: every_joint_absolute_qpos_error_below_0.05_radians
+  physical_cost_tie_tolerance: 0.0025
+  model_cost_tie_tolerance: 0.000001
+  pairwise_metric: tie_aware_pairwise_accuracy_excluding_physical_ties
+  predicted_ties_receive_half_credit: true
+
+statistics:
+  bootstrap_unit: episode_seed
+  bootstrap_replicates: 5000
+  bootstrap_seed: 505001
+  equal_episode_weight: true
+  report_candidate_availability: true
+  report_selected_success_and_normalized_regret: true
+
+primary_screen:
+  generator: mlp_cem
+  scorer: supervised_mlp
+  candidate_availability_at_least: 0.80
+  pairwise_accuracy_at_least: 0.90
+  normalized_regret_at_most: 0.10
+  all_point_estimate_screens_required_to_draft_confirmation: true
+
+interpretation:
+  development_only: true
+  no_teacher_labels: true
+  no_student_training: true
+  no_model_based_rl_claim: true
+  no_hyperparameter_tuning_on_seed_range: true
+  if_primary_screen_fails: stop_fixed_planner_teacher_line
+
+artifacts:
+  per_seed_incremental_progress: true
+  preserve_all_final_candidate_actions_and_costs: true
+  target_bytes: 100000000
+  stop_bytes: 500000000
+
+runtime:
+  candidate_batch_size: 16

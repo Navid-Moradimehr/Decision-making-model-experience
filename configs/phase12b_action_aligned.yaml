@@ -1,0 +1,113 @@
+phase: 12b
+experiment: inertial_corridor_action_grouped_planner_distillation
+status: frozen_before_phase12b_outcomes
+updated: 2026-09-28
+
+question: Does training on the first action actually executed by receding-horizon shooting improve amortization over sequence-level supervision?
+
+training_sources:
+  paths:
+    - artifacts/runs/phase12_train_teacher_v1
+    - artifacts/runs/phase12_validation_teacher_v1
+  reuse_as_training_only: true
+  layout_count: 160
+
+seed_splits:
+  model_selection: {start: 150000, count: 40, unit: layout_sha256, collect_now: true}
+  offline_gate: {start: 150040, count: 40, unit: layout_sha256, collect_only_after_selected_checkpoint_lock: true}
+  closed_loop_development: {start: 143000, count: 40, status: unopened_until_offline_gate_pass}
+  dagger_round_1: {start: 142000, count: 40, status: conditional}
+  dagger_round_2: {start: 142040, count: 40, status: conditional}
+  dagger_round_3: {start: 142080, count: 40, status: conditional}
+  final_reserve: {start: 130000, count: 200, status: sealed}
+  rules:
+    - Hash-audit all new splits against all historical Phase 11/12 layouts before labels.
+    - Use existing Phase 12 train and former validation only for fitting; neither is a 12b validation set.
+    - Model selection may read model_selection only; offline_gate must remain unopened until checkpoint/config selection are frozen.
+    - Closed-loop development, DAgger, and reserve are not read unless their separate gates/locks authorize them.
+
+teacher:
+  source: exact_phase12_shooting
+  horizon: 8
+  sequence_candidates: 128
+  objective_key: exact_lexicographic
+  action_group_key: minimum_objective_key_among_candidates_with_same_first_action
+  action_group_rank: tie_aware_average_rank_across_nine_first_actions
+  normalized_action_regret: (average_rank - best_average_rank) / 8
+  first_action_only_is_executed: true
+
+models:
+  common:
+    architecture: Phase12_shared_candidate_MLP
+    parameters_max: 100000
+    inference_device: CPU
+  variants:
+    - id: sequence_policy_control
+      input: public_state_plus_128_sequence_candidate_set
+      loss: soft_rank_cross_entropy
+      temperature: 0.15
+      selection: highest_sequence_logit_then_execute_first_action
+    - id: action_group_policy
+      input: public_state_plus_128_sequence_candidate_set
+      loss: soft_cross_entropy_on_induced_first_action_distribution
+      temperature: 0.15
+      action_probability: sum_sequence_softmax_mass_over_same_first_action
+      selection: maximum_action_probability
+    - id: direct_action_value
+      input: public_state_plus_nine_first_action_candidates
+      loss: mean_squared_error_on_normalized_action_group_regret
+      selection: minimum_predicted_action_group_regret
+  fit:
+    optimizer: AdamW
+    learning_rate: 0.0003
+    weight_decay: 0.0001
+    temperature: 0.15
+    batch_decision_sets: 32
+    max_epochs: 120
+    early_stopping_patience: 15
+    gradient_norm_clip: 1.0
+    seeds: [1211, 1212, 1213]
+    equal_total_weight_per_layout: true
+    selection_split_only: model_selection
+    selector: [layout_macro_mean_normalized_action_group_regret, action_optimal_set_nll, variant_order, fit_seed]
+
+evaluation:
+  offline_primary: layout_macro_mean_normalized_action_group_regret
+  offline_gate_threshold: 0.15
+  offline_gate_reason: preserve_Phase12_normalized_rank_regret_threshold_on_the_execution-relevant_nine-action_support
+  offline_gate_split: offline_gate
+  secondary:
+    - teacher_first_action_exact_agreement
+    - teacher_optimal_first_action_set_inclusion
+    - top_3_optimal_action_recall
+    - expected_normalized_action_group_regret
+    - action_distribution_NLL_and_Brier_against_uniform_optimal_action_set
+    - paired_layout_bootstrap_interval
+    - permutation_consistency
+    - scorer_latency_and_parameter_count
+  bootstrap: {resamples: 10000, seed: 150041, unit: layout_sha256}
+  development_methods: [geometry_waypoint, exact_random_shooting, frozen_selected_student]
+
+software_gates:
+  - exact teacher objective parity and all-nine-action coverage
+  - student input firewall unchanged; no objective keys, ranks, or future states at inference
+  - row permutation equivariance max deviation <= 1e-6 and zero semantic choice flips over 100 random permutations per fixture
+  - action-group targets match an independent reference implementation including ties
+
+stop_rules:
+  - Do not inspect offline_gate until training/model selection is frozen and checkpoint hash recorded.
+  - If selected checkpoint fails offline_gate <= 0.15, stop before closed-loop and DAgger; retain reserve sealed.
+  - If offline gate passes, closed-loop development still must satisfy the frozen Phase 12 DAgger trigger before any DAgger round.
+  - Do not introduce world-model/JEPA/representation mechanisms from Phase 12b alone.
+
+resource_caps:
+  teacher_collection_wall_seconds: 10800
+  teacher_collection_artifact_bytes: 1073741824
+  generated_artifacts_total_bytes: 1073741824
+  student_fit_wall_seconds: 7200
+  max_model_parameters: 100000
+  device_policy: CUDA only if pinned active Python reports usable CUDA; otherwise CPU; no package installation required
+
+authorization:
+  reserve_accessed: false
+  user_scope: continue the Phase 12 evidence-gated program; collect only the two fresh validation blocks after source/split lock passes

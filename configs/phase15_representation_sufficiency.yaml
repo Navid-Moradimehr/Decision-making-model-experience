@@ -1,0 +1,133 @@
+schema: phase15_representation_sufficiency_v1
+status: authorized_exploratory_train_validation_audit
+prompt_source: new Prompt.md
+parents:
+  feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  feature_manifest: artifacts/runs/phase15_offline_v2/features/manifest.json
+  d151_result: artifacts/runs/phase15_r4_summary_feasibility_v1/result.json
+  d151_manifest: artifacts/runs/phase15_r4_summary_feasibility_v1/manifest.json
+  d151_report: reports/phase15_r4_summary_feasibility_result.md
+  d151_lock: experiments/phase15_r4_summary_feasibility.lock.json
+  d150_result: artifacts/runs/phase15_representation_screen_v1/result.json
+  d150_manifest: artifacts/runs/phase15_representation_screen_v1/manifest.json
+  d150_report: reports/phase15_representation_screen_result.md
+  d150_lock: experiments/phase15_representation_screen.lock.json
+  d150_r0_checkpoint: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d150_r4_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+  phase14g_traces: artifacts/runs/phase14g_trace_v1/student_decisions.jsonl
+  phase14g_manifest: artifacts/runs/phase14g_trace_v1/manifest.json
+  phase14g_lock: experiments/phase14g_trace_v1.lock.json
+split:
+  scheme: sha256_layout_group_phase15_v1
+  train_layout_count: 60
+  train_row_count: 571
+  train_layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  validation_layout_count: 20
+  validation_row_count: 202
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  test_layout_count: 20
+  test_row_count: 149
+  test_layouts_sha256: 83EF25471DA3F9A12EF26E4E594EDE657755319F410A0EB90F5DBA177DED3403
+aliasing:
+  normalization: train_only_per_feature_mean_std
+  neighbor_counts: [1, 5]
+  random_cross_split_pairs: 10000
+  random_pair_seed: 152001
+  close_neighbor_cutoff: train_leave_one_out_r0_distance_p90
+  conditional_history_gate:
+    minimum_close_validation_rows: 40
+    close_neighbor_r4_summary_rmse_minimum: 0.10
+    close_neighbor_best_action_set_disagreement_minimum: 0.20
+  metrics:
+    - r0_euclidean_distance
+    - r4_summary_rmse
+    - teacher_regret_mean_absolute_difference
+    - teacher_pairwise_ranking_disagreement
+    - best_action_set_disagreement
+    - catastrophic_action_mask_jaccard_distance
+predictors:
+  action_conditioning: append_fixed_9_way_action_onehot_to_state
+  examples_per_state: 9
+  nearest_neighbor:
+    k_values: [1, 5]
+    distance: train_standardized_state_only_same_action
+    aggregation: uniform_mean_target
+  cart:
+    maximum_depth: 6
+    minimum_leaf_examples: 32
+    impurity: layout_weighted_multioutput_squared_error
+  small_mlp:
+    architecture: [70, 32, 32, 7]
+    seed: 152015
+    epochs: 800
+    learning_rate: 0.002
+    l2: 0.00001
+    input_standardization: train_only
+    output: sigmoid_7
+    loss: layout_weighted_mean_squared_error
+    checkpoint: minimum_training_objective
+  larger_mlp:
+    conditional_only_if_small_model_underfits: true
+    trigger: small_mlp_train_rmse_at_least_5_percent_worse_than_train_constant_rmse
+    architecture: [70, 64, 64, 7]
+    seed: 152016
+    epochs: 800
+    learning_rate: 0.002
+    l2: 0.00001
+    input_standardization: train_only
+    output: sigmoid_7
+    loss: layout_weighted_mean_squared_error
+    checkpoint: minimum_training_objective
+target_contract:
+  source: x_R4[:, 61:124]
+  per_action_fields:
+    - terminal_outcome_onehot_4_success_active_timeout_collision
+    - normalized_terminal_steps
+    - normalized_terminal_goal_distance
+    - normalized_noncoast_effort
+  action_count: 9
+  dimensions_per_action: 7
+  predictor_input_forbidden:
+    - teacher_regret
+    - teacher_rank
+    - teacher_best_action
+    - terminal_future_state
+decision_head:
+  frozen_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+  updates: false
+  comparison_inputs:
+    - exact_R4
+    - predicted_all_components
+    - predict_one_component_group_keep_other_exact
+    - predict_all_restore_one_exact_component_group
+metrics:
+  per_component:
+    - outcome_accuracy
+    - success_precision_recall_f1
+    - collision_precision_recall_f1
+    - terminal_steps_mae_rmse
+    - terminal_goal_distance_mae_rmse
+    - noncoast_effort_mae_rmse
+  downstream_decision:
+    - layout_macro_normalized_regret
+    - state_micro_normalized_regret
+    - catastrophic_fraction_at_regret_0_5
+    - best_action_set_agreement
+    - regret_gap_weighted_pairwise_accuracy
+scope:
+  train_rows_used_for_predictor_fit: true
+  validation_rows_used_for_exploratory_metrics: true
+  validation_used_for_checkpoint_selection: false
+  test_rows_used_or_indexed: false
+  consumed_test_metrics_recomputed: false
+  reserve_access: false
+  simulator_or_planner_calls: false
+  new_transitions_or_episodes: false
+  closed_loop: false
+  dagger: false
+  learned_world_model: false
+  jepa: false
+  d151_result_modified: false
+outputs:
+  run_dir: artifacts/runs/phase15_representation_sufficiency_v1
+  report: reports/phase15_representation_sufficiency_result.md

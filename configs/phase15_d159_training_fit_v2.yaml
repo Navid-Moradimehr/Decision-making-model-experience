@@ -1,0 +1,57 @@
+schema: phase15_d159_training_fit_v2
+status: training_only_fit_diagnostic_path_amendment_frozen
+protocol: reports/phase15_d159_prelock_amendment_v1.md
+parents:
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+  d158_interpretation: reports/phase15_d158_v2_interpretation.md
+data:
+  rows: 1365
+  layouts: 140
+  split_role: training_only
+  predictor_crossfit_folds: 5
+  predictor_fold_hash: sha256_layout_hex_prefix_integer_mod_5
+representations:
+  - r0_action_only
+  - r0_action_predicted_outcome_steps
+  - r0_action_exact_outcome_steps_oracle
+model:
+  architecture: D158_small_deep_sets
+  width: 24
+  seed: 15900
+  learning_rate: 0.002
+  l2: 0.00001
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  max_epochs: 2400
+  patience: 240
+  checkpoint: minimum_training_listwise_plus_collision_objective
+  listwise_temperature: 0.25
+  collision_loss_weight: 1.0
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  state_standardization: training_rows_only
+fit_gate:
+  max_train_macro_regret: 0.05
+  max_train_catastrophic_fraction: 0.05
+  oracle_control_must_pass: true
+scope:
+  training_only: true
+  d152_validation_read: false
+  d157_read: false
+  test_rows: false
+  reserve_access: false
+  simulator_calls: false
+  planner_calls: false
+  new_transitions_or_episodes: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+outputs:
+  lock: experiments/phase15_d159_training_fit_v2.lock.json
+  run_dir: artifacts/runs/phase15_d159_training_fit_v2
+  report: reports/phase15_d159_result_v2.md

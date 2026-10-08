@@ -1,0 +1,86 @@
+schema: phase15_d154_decision_aligned_v1
+status: exploratory_offline_protocol_frozen_pending_lock
+parents:
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d152_lock: experiments/phase15_representation_sufficiency.lock.json
+  d152_manifest: artifacts/runs/phase15_representation_sufficiency_v1/manifest.json
+  d152_result: artifacts/runs/phase15_representation_sufficiency_v1/result.json
+  d153_corpus: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d153_result: artifacts/runs/phase15_d153_coverage_scaling_v3/result.json
+  d153_validation_predictions: artifacts/runs/phase15_d153_coverage_scaling_v3/validation_predictions.npz
+  d153_report: reports/phase15_d153_coverage_scaling_result_v3.md
+  d150_r0_checkpoint: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d150_r4_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+split:
+  train: d152_train_60_layouts_plus_d153_fresh_140_layouts
+  train_layout_count: 200
+  train_state_count: 1936
+  validation: fixed_d152_reused_validation
+  validation_layout_count: 20
+  validation_state_count: 202
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  validation_is_exploratory: true
+  test_reserve_used: false
+target:
+  source: exact_R4_summary
+  reconstruction: phase14_lexicographic_average_rank_regret
+  tuple_order: [success_timeout_collision_class, success_steps_or_failure_goal_distance, noncoast_effort]
+  action_count: 9
+  normalized_rank_divisor: 8
+  parity_required_on_d152_train_validation: exact
+student:
+  input: R0_61_deployable_numeric_state
+  forbidden_inputs: [exact_R4_summary, teacher_regret, teacher_rank, teacher_best_action, test_or_reserve_targets]
+  architecture: [61, 32, 32, 9]
+  seed: 15401
+  optimizer: full_batch_adam
+  learning_rate: 0.002
+  l2: 0.00001
+  max_epochs: 1200
+  patience: 100
+  input_standardization: train_only_mean_std
+  sample_weighting: equal_total_weight_per_layout
+  checkpoint: minimum_validation_layout_macro_selected_regret_then_objective_loss
+  memorization:
+    states: 8
+    minimum_best_action_agreement: 0.99
+    maximum_mean_selected_regret: 0.01
+  formulations:
+    - {id: T1_regret_regression, objective: squared_error, selection: argmin_score}
+    - {id: T2_margin_weighted_pairwise, objective: pairwise_softplus_weight_abs_regret_gap_ties_excluded, selection: argmin_score}
+    - {id: T3_listwise, objective: teacher_softmax_cross_entropy, temperatures: [0.125, 0.25, 0.5], primary_temperature: 0.25, selection: argmax_logit}
+references:
+  - {id: direct_D150_R0, input: R0, checkpoint: d150_r0_checkpoint}
+  - {id: D153_predicted_R4_then_D150_head, input: R0_plus_D153_D200_predicted_summary, checkpoint: d150_r4_checkpoint}
+  - {id: exact_R4_then_D150_head, input: exact_R0_plus_R4, checkpoint: d150_r4_checkpoint, oracle: true}
+metrics:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  high_margin_pair_gap_threshold: 0.25
+  safe_action_regret_at_most: 0.125
+  catastrophic_action_regret_at_least: 0.5
+  primary: [layout_macro_normalized_selected_regret, catastrophic_fraction, best_action_set_agreement, epsilon_optimal_rate, high_margin_pairwise_accuracy, safe_vs_catastrophic_order_accuracy]
+  secondary: [all_pairwise_accuracy, action_frequency, regret_rmse, parameter_count, inference_latency, fit_time]
+component_diagnostic:
+  enabled: true
+  groups: [terminal_outcome, terminal_steps, terminal_goal_distance, noncoast_effort]
+  interpretation: frozen_head_counterfactual_sensitivity_only
+scope:
+  train_validation_only: true
+  fixed_reused_validation: true
+  simulator_calls: false
+  planner_calls: false
+  new_transitions: false
+  new_episodes: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+  representation_distillation: false
+  reserve_access: false
+  test_rows_scored: false
+outputs:
+  lock: experiments/phase15_d154_decision_aligned.lock.json
+  run_dir: artifacts/runs/phase15_d154_decision_aligned_v1
+  report: reports/phase15_d154_decision_aligned_result.md

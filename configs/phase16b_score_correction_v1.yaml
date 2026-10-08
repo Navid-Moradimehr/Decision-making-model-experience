@@ -1,0 +1,35 @@
+schema: phase16b-score-correction-v1
+created: 2026-10-03
+parent_run: artifacts/runs/phase16b_outcome_proposal_v2
+inputs:
+  result_sha256: B3C2802B500D19B4FE5D7F2CC1A7638E5DB1AF8FA13CC346DD09114ED181EE4C
+  manifest_sha256: CEC7CD95A65F23EAD4B698F178008E3C8ED78DF15779732E42A2412D808B4D03
+  oof_predictions_sha256: F5DCD53B45BFC4C236636018B656F4F9CB16E6C34C43B936E17F4B21D2C98183
+  source_lock_sha256: 2075F06B22E7FF282615E6B31B48C918C9B034DCED8F08423B5EF7A233872F68
+scoring:
+  high_risk_collision_recall_k: 2
+  high_risk_order: descending_collision_score
+  low_risk_collision_selection_k: 1
+  tie_abs_tolerance: 0.000000000001
+  bootstrap:
+    unit: complete_layout
+    draws: 10000
+    seed: 160301
+advancement:
+  top_one_success_gain_over_action_frequency_at_least: 0.03
+  top_one_success_gain_ci_lower_above: 0.0
+  high_risk_collision_recall_at_two_gain_over_uniform_at_least: 0.10
+  high_risk_collision_recall_gain_ci_lower_above: 0.0
+  minimum_seeds_passing_joint_gate: 2
+data_policy:
+  score_saved_oof_only: true
+  training: false
+  simulator: false
+  planner: false
+  validation: false
+  fresh_development: false
+  reserve: false
+  test: false
+  closed_loop: false
+  dagger: false
+output_dir: artifacts/runs/phase16b_score_correction_v1

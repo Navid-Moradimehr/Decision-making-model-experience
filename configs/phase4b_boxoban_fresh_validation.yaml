@@ -1,0 +1,68 @@
+project:
+  name: consequence-lab
+  phase: 4B-1
+  protocol: boxoban_fresh_budgeted_planner_screen_v1
+  authorization: D046_fresh_validation_screen_only
+  validation_access_authorized: true
+  student_training_authorized: false
+  teacher_label_generation_authorized: false
+  calibration_access_authorized: false
+  max_gpu_hours: 0
+  max_total_cpu_seconds: 9000
+  max_generated_artifact_bytes: 2000000000
+
+dataset:
+  repository: https://github.com/google-deepmind/boxoban-levels
+  revision: 78011d8c86ad423bfb2e1005012393b4c3c24409
+  split: medium/valid
+  level_count: 50000
+  levels_per_shard: 1000
+  sample_count: 60
+  sample_hash_input: "consequence-lab/phase4b-budgeted-validation-v1:{canonical_level_id}"
+  exclude_level_ids_from_run: artifacts/runs/phase4_boxoban_validation_screen_v1/summary.json
+  preserve_all_selected_levels_in_denominator: true
+  official_test_access: forbidden
+
+task:
+  action_limit: 500
+  actions: [up, right, down, left]
+
+solver:
+  exact_max_expansions_per_level: 2000000
+  exact_timeout_seconds_per_level: 60
+  bounded_heuristic: static_push_assignment
+  bounded_expansion_budgets: [10000, 100000]
+  bounded_timeout_seconds_per_budget: 10
+  unresolved_is_not_unsolvable: true
+
+baselines:
+  retain_existing_greedy_push: true
+  compare_exact_manhattan_assignment: true
+  compare_exact_static_push_assignment: true
+  primary_budgeted_planner: static_push_assignment_100000_expansions
+  random_baseline: false
+  nearest_goal_diagnostic: false
+
+statistics:
+  primary_unit: complete_level
+  primary_difference: exact_static_success_minus_budgeted_static_100000_success
+  paired_bootstrap_replicates: 10000
+  paired_bootstrap_seed: 504002
+  interval: percentile_95
+  latency_quantiles: [0.50, 0.95]
+  latency_quantile_method: nearest_rank
+
+gate:
+  exact_static_proofs_required: 60
+  unresolved_exact_levels_allowed: 0
+  exact_static_success_gain_over_budget100k_point_minimum: 0.10
+  paired_bootstrap_ci95_lower_strictly_greater_than: 0.0
+  otherwise: stop_before_teacher_labels_or_student_training
+
+artifacts:
+  run_directory: artifacts/runs/phase4b_boxoban_fresh_validation_v1
+  refuse_overwrite: true
+  save_selected_level_text_only: true
+  save_source_shard_hashes: true
+  save_per_level_method_results: true
+  save_teacher_labels: false

@@ -1,0 +1,115 @@
+phase: 14
+stage: phase14c_synthetic_and_training_memorization
+schema: phase14c_config_v2
+status: frozen_before_phase14c_training
+updated: 2026-09-29
+
+source:
+  full_training_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  full_training_manifest: artifacts/runs/phase14b_training_labels_resume_v1/manifest.json
+  continuation_lock: experiments/phase14b_training_labels_resume_v1.lock.json
+  continuation_lock_sha256: 1B1F7928A3D93BB57A94376C26E26A2B0E7661D15FA762C36DBBB09BA9C80D2E
+  source_audit: artifacts/runs/phase14_training_source_audit_v2.json
+  full_training_records_sha256: C82BEDAB9987C16DDACB7BF1E85BD0136C4A5A7055368604B0F17267F5676485
+  full_training_manifest_sha256: 0E83A5523498CE8DF19DB901E14D76630744F09DD091D5D241588F9CFF3BDB6B
+  failed_phase14c_v1_lock: experiments/phase14c_memorization_v1.lock.json
+  failed_phase14c_v1_lock_sha256: A7ECC4BFD4BBCE0BA46E5EEC453ED0DE5D0D9EAC3BFBA5F0725E9A97CF9641D6
+  failed_phase14c_v1_manifest: artifacts/runs/phase14c_memorization_v1/manifest.json
+  failed_phase14c_v1_manifest_sha256: D3F58599776DEABDBD9A2F9F2719659BF05E94736F595A69EE0C1C38D53A476A
+  expected_states: 2095
+  expected_action_values: 18855
+  memorization_seed: 141400
+  synthetic_seed: 141399
+  one_layout_seed_from_source_audit: true
+
+authorization:
+  stage: synthetic_integrity_and_same_data_memorization_only
+  student_training: true
+  training_split_only: true
+  heldout_access: false
+  dagger: false
+  world_model: false
+  reserve_access: false
+
+features:
+  raw_width: 52
+  variants: [raw52, raw52_plus_physics9]
+  future_information: forbidden
+  physics9:
+    - goal_relative_dx_normalized
+    - goal_relative_dy_normalized
+    - goal_distance_world_diagonal_normalized
+    - speed_fraction_of_max
+    - forward_velocity_toward_goal_fraction_of_max
+    - lateral_velocity_fraction_of_max
+    - velocity_goal_alignment_cosine
+    - nearest_obstacle_clearance_world_diagonal_normalized
+    - discrete_greedy_braking_distance_world_diagonal_normalized
+  braking_definition: "simulate the legal primitive action minimizing next speed squared (action-ID tie-break), applying exact damping, acceleration, diagonal normalization, and max-speed clipping; sum traveled distance until speed <= safe_speed or 128 steps, then normalize by world diagonal"
+
+targets:
+  variants: [within_state_normalized_regret9, standardized_structured_objective27]
+  objective_components: [terminal_class, conditional_primary_cost, total_noncoast_effort]
+  q_standardization: "one mean/std per component pooled across fitting states and nine actions; std floor 1e-8; invert before lexicographic evaluation"
+  regret: "stored exact target (average_rank - best_average_rank) / 8"
+  student_selection: "argmin predicted objective tuple or predicted regret; deterministic lowest action-ID tie-break"
+  near_tie_exclusion: "for pairwise-order score only: different terminal classes are always clear; within a class, pairs whose primary-cost gap is <=1 step for success or <=0.01 distance for failure are ignored; near-tie exclusion does not alter targets or decision regret"
+
+learner_families:
+  nearest_neighbor:
+    type: NumPy_1NN_regressor
+    neighbors: 1
+    distance: euclidean_after_fitting_only_standardization
+  decision_tree:
+    type: NumPy_multioutput_CART_squared_error
+    max_depth: unbounded
+    min_samples_leaf: 1
+    random_state: 141400
+  tiny_mlp:
+    type: NumPy_MLPRegressor
+    hidden_layer_sizes: [64, 64]
+    activation: relu
+    optimizer: Adam
+    alpha: 0.0001
+    batch_size: 64
+    learning_rate_init: 0.001
+    max_epochs: 3000
+    tol: 0.000001
+    plateau_patience_epochs: 200
+    validation_early_stopping: false
+    random_state: 141400
+    max_parameters: 10000
+
+memorization:
+  ladder: [diagnostic_1, diagnostic_8, diagnostic_32, one_layout, full_training]
+  diagnostic_states: "nested query keys in phase14_training_source_audit_v2.diagnostic_state_keys order"
+  one_layout: "all rows whose source_episode_seed equals phase14_training_source_audit_v2.one_layout_seed"
+  full_training: "all 2,095 source rows"
+  target_and_feature_variants: all_cartesian_combinations
+  advancement:
+    max_mean_normalized_decision_regret: 0.01
+    minimum_clear_pair_order_accuracy: 0.99
+    at_least_one_learner_must_pass_each_rung_and_each_feature_target_combination: true
+  synthetic_integrity:
+    input_rule: "on a balanced grid of deployable numeric inputs, action 1 is preferred when vx > 0.2; action 2 is preferred otherwise; other actions have strictly worse targets"
+    use_same_feature_transformer_model_factory_and_evaluator: true
+    require_zero_training_decision_regret_for_tree_and_1nn: true
+    require_mlp_correct_non_tied_ordering: true
+
+scope:
+  heldout_layouts_opened: false
+  closed_loop: false
+  dagger: false
+  learned_world_model: false
+  reserve: false
+
+resources:
+  device: cpu
+  wall_time_cap: null
+  generated_storage_cap: null
+  overwrite_forbidden: true
+
+outputs:
+  lock: experiments/phase14c_memorization_v2.lock.json
+  run_dir: artifacts/runs/phase14c_memorization_v2
+  report: reports/phase14c_memorization_v2_result.md

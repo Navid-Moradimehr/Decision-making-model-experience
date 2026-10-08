@@ -1,0 +1,99 @@
+schema: phase29-iterative-refinement-v1
+protocol: reports/phase29_iterative_refinement_protocol.md
+amendment: reports/phase29_parent_protocol_hash_compatibility_amendment.md
+authorization:
+  scope: phase29-offline-exact-refinement-feasibility
+  user_instruction: "Start one final bounded iterative plan-refinement feasibility branch"
+  date: 2026-10-06
+parent:
+  phase28_config: configs/phase28_sequential_exact_search_v1.yaml
+  phase28_source: src/consequence_lab/phase28_sequential_exact_search.py
+  phase28_protocol: reports/phase28_sequential_exact_search_protocol.md
+  phase28_lock: experiments/phase28_sequential_exact_search_v1.lock.json
+  phase28_run_dir: artifacts/runs/phase28_sequential_exact_search_v1
+  phase28_records: artifacts/runs/phase28_sequential_exact_search_v1/episodes.jsonl.gz
+  phase28_result: artifacts/runs/phase28_sequential_exact_search_v1/result.json
+  phase28_run_manifest: artifacts/runs/phase28_sequential_exact_search_v1/run_manifest.json
+  phase28_result_manifest: artifacts/runs/phase28_sequential_exact_search_v1/result_manifest.json
+source:
+  method: fixed_b32
+  block: [211000, 211500]
+  replicas: [0, 1, 2]
+  horizon_minimum: 4
+  sample_per_episode: 1
+  eligibility: "previous_plan is non-null and horizon >= horizon_minimum"
+  selection_hash: "sha256(seed|replica|decision_index|phase29-state-v1), choose eligible row with lowest digest"
+  layout_group_folds: 5
+  layout_fold_hash: "sha256(layout_sha256|phase29-fold-v1) modulo 5"
+planning:
+  action_count: 9
+  maximum_horizon: 8
+  predictability_plan_encoding: physical_action_vectors_zero_padded_to_maximum_horizon_plus_active_mask_and_horizon_fraction
+  refinement_operator: single_position_substitution
+  max_refinement_depth: 4
+  target: exact_b32_top_three
+  epsilon_good_definition: "membership in exact objective-sorted B32 top-three set; no scalar epsilon"
+  evaluate_all_target_partial_subsets: true
+  reuse_exact_saved_scores_from_b24_b32: true
+  maximum_selected_states: 1500
+  maximum_new_exact_sequence_evaluations: 63000
+predictability:
+  inputs:
+    - canonical_deployable_state
+    - shifted_plan_physical_action_vectors_zero_padded_to_maximum_horizon
+    - shifted_plan_active_position_mask
+    - shifted_plan_horizon_fraction
+    - exact_current_shifted_plan_objective_available_to_planner
+  output_slots:
+    - fixed_position_and_replacement_action_ids
+  forbidden_inputs:
+    - b32_target_plan
+    - future_state_or_future_consequence
+    - teacher_target_or_target_objective
+    - terminal_outcome_of_candidate_edit
+  models:
+    ridge_multioutput:
+      alpha: 1.0
+      target: set_valued_binary_multi_output
+      intercept: unpenalized
+    decision_tree:
+      max_depth: 5
+      min_samples_leaf: 20
+      criterion: summed_squared_error
+      tie_break: lowest_feature_then_threshold
+    nearest_neighbor:
+      neighbors: 1
+      metric: euclidean
+  metrics:
+    - any_positive_hit_at_1
+    - any_positive_hit_at_4
+    - reciprocal_rank
+    - layout_bootstrap_95_ci
+analysis:
+  meaningful_improvement:
+    - b32_top_three_has_strictly_better_primary_outcome_category_than_shifted_plan
+    - b32_top_three_has_safe_success_and_shifted_plan_is_not_safe_success
+  depth_gate_fraction: 0.50
+  category_improvement_by_depth_two_fraction: 0.25
+  refinement_eval_reference: 8
+  heldout_hit_at_4_at_least: 0.25
+  hit_at_4_paired_layout_bootstrap_lower_gt: 0.0
+  bootstrap_seed: 29029
+  bootstrap_draws: 10000
+  top3_tie_break: [objective_tuple, sequence]
+execution:
+  exact_rollout_evaluation: true
+  new_episodes: false
+  state_replay_for_sampled_existing_decisions: true
+  model_training: false
+  offline_predictability_fit_only: true
+  deployable_refiner: false
+  closed_loop: false
+  reserve_test_d168_access: false
+  resume: false
+outputs:
+  run_dir: artifacts/runs/phase29_iterative_refinement_v1
+  lock: experiments/phase29_iterative_refinement_v1.lock.json
+  states: artifacts/runs/phase29_iterative_refinement_v1/states.jsonl.gz
+  result: artifacts/runs/phase29_iterative_refinement_v1/result.json
+  manifest: artifacts/runs/phase29_iterative_refinement_v1/manifest.json

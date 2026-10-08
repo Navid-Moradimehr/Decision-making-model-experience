@@ -1,0 +1,41 @@
+phase: 9
+experiment: finger_sac_api_smoke
+scope: algorithm_integration_only_no_performance_evaluation
+environment: dm_control.suite.finger/turn_hard
+seed: 990001
+training_steps: 2048
+runtime:
+  python: "3.12.3"
+  dm_control: "1.0.47"
+  mujoco: "3.14.0"
+  gymnasium: "1.2.3"
+  numpy: "2.5.3"
+  torch: "2.7.1+cpu"
+  stable_baselines3: "2.7.1"
+  device: cpu
+observation:
+  flattened_shape: [12]
+  field_order: [position, velocity, touch, target_position, dist_to_target]
+action:
+  shape: [2]
+  bounds: [-1.0, 1.0]
+sac:
+  policy: MlpPolicy
+  network: [64, 64]
+  learning_rate: 0.0003
+  buffer_size: 4096
+  learning_starts: 256
+  batch_size: 64
+  train_frequency: 1
+  gradient_steps: 1
+  gamma: 0.99
+  tau: 0.005
+  replay_buffer_device: cpu
+limits:
+  max_process_cpu_seconds: 180
+  max_generated_artifact_bytes: 1048576
+artifact_policy:
+  save_model: false
+  save_episode_returns: false
+  save_trajectories: false
+  save_training_logs: false

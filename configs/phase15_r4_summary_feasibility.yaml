@@ -1,0 +1,89 @@
+schema: phase15_r4_summary_feasibility_v1
+status: authorized_offline_feasibility_screen
+parents:
+  feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  feature_manifest: artifacts/runs/phase15_offline_v2/features/manifest.json
+  representation_result: artifacts/runs/phase15_representation_screen_v1/result.json
+  representation_manifest: artifacts/runs/phase15_representation_screen_v1/manifest.json
+  representation_lock: experiments/phase15_representation_screen.lock.json
+  representation_report: reports/phase15_representation_screen_result.md
+  training_fit_result: artifacts/runs/phase15_training_fit_audit_v1/result.json
+  training_fit_manifest: artifacts/runs/phase15_training_fit_audit_v1/manifest.json
+  training_fit_lock: experiments/phase15_training_fit_audit.lock.json
+representation_checkpoint_dir: artifacts/runs/phase15_representation_screen_v1
+split:
+  scheme: sha256_layout_group_phase15_v1
+  salt: "phase15-layout-split-v1:"
+  train_layout_count: 60
+  train_row_count: 571
+  train_layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  validation_layout_count: 20
+  validation_row_count: 202
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  test_layout_count: 20
+  test_row_count: 149
+  test_layouts_sha256: 83EF25471DA3F9A12EF26E4E594EDE657755319F410A0EB90F5DBA177DED3403
+feature_contract:
+  student_input: R0_state_only
+  input_dimension: 61
+  target: R4[61:124]_exact_per_action_continuation_summary
+  output_dimension: 63
+  action_count: 9
+  per_action_fields: [terminal_outcome_onehot_4, terminal_steps, terminal_goal_distance, noncoast_effort]
+model:
+  architecture: [61, 32, 32, 63]
+  output_activation: sigmoid
+  loss: layout_weighted_mean_squared_error
+  seed: 15151
+  max_epochs: 1200
+  patience: 100
+  learning_rate: 0.002
+  l2: 0.00001
+  input_standardization: train_only
+  target_standardization: none_all_targets_in_0_1
+  checkpoint: minimum_validation_feature_mse
+decision_head:
+  frozen_source_checkpoint: R4_pairwise_student_from_D150
+  head_hash_reference: D150_manifest
+  updates: false
+head_reproduction_gate:
+  tolerance: 0.0000000001
+  R0:
+    best_epoch: 113
+    validation_layout_macro_regret: 0.3510361523030522
+    validation_catastrophic_fraction_state_micro: 0.32673267326732675
+    validation_best_action_set_agreement: 0.26732673267326734
+  R4:
+    validation_layout_macro_regret: 0.07915851363150343
+    validation_catastrophic_fraction_state_micro: 0.04950495049504951
+    validation_best_action_set_agreement: 0.6485148514851485
+baselines:
+  - train_layout_weighted_constant_R4_summary
+  - exact_R4_oracle_summary_plus_frozen_R4_head
+  - predicted_R4_summary_plus_frozen_R4_head
+  - R0_direct_student_from_D150
+metrics:
+  summary_prediction: [rmse, mae, outcome_argmax_accuracy, terminal_steps_mae, terminal_goal_distance_mae, noncoast_effort_mae]
+  downstream_decision: [layout_macro_regret, state_micro_regret, catastrophic_fraction, best_action_set_agreement, weighted_pairwise_accuracy]
+screen_gate:
+  summary_rmse_relative_improvement_vs_constant_minimum: 0.25
+  downstream_macro_regret_maximum: 0.18
+  downstream_catastrophic_fraction_maximum: 0.15
+  outcome: nominate_only_for_fresh_independent_feasibility_confirmation
+scope:
+  fit_summary_predictor: true
+  fit_or_update_decision_heads: false
+  train_rows_used_for_fit: true
+  validation_used_for_checkpoint_selection_and_development_screen: true
+  test_rows_used_for_fit_selection_or_metrics: false
+  rerun_or_recompute_test_metrics: false
+  simulator_or_planner_calls: false
+  new_transitions_or_episodes: false
+  recursive_rollout: false
+  closed_loop: false
+  dagger: false
+  jepa: false
+  reserve_access: false
+outputs:
+  run_dir: artifacts/runs/phase15_r4_summary_feasibility_v1
+  report: reports/phase15_r4_summary_feasibility_result.md

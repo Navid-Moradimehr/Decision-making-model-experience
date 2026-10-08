@@ -1,0 +1,32 @@
+phase: 9
+experiment: wsl_cuda_stack_smoke
+scope: isolated_cuda_environment_and_tiny_tensor_smoke_only
+runtime:
+  platform: WSL2
+  python: "3.12.3"
+  torch: "2.7.1+cu118"
+  stable_baselines3: "2.7.1"
+  gymnasium: "1.2.3"
+  dm_control: "1.0.47"
+  mujoco: "3.14.0"
+  numpy: "2.5.3"
+  pyyaml: "6.0.3"
+device:
+  expected: cuda:0
+  operation: finite_256_by_256_matrix_product
+environment:
+  task_environment_imported: false
+  task_environment_reset: false
+  task_steps: 0
+  training_steps: 0
+limits:
+  max_wall_seconds: 30
+  max_process_cpu_seconds: 30
+  max_generated_artifact_bytes: 1048576
+artifact_policy:
+  stdout_metadata_only: true
+  save_tensor: false
+  save_model: false
+  save_task_data: false
+  save_training_logs: false
+  create_output_files: false

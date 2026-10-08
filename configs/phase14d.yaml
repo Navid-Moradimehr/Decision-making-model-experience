@@ -1,0 +1,92 @@
+phase: 14
+stage: phase14d_first_action_value_generalization
+schema: phase14d_config_v1
+status: protocol_frozen_before_phase14d_outcomes
+updated: 2026-09-29
+
+source:
+  protocol: reports/phase14d_decision_function_generalization_protocol.md
+  training_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  training_manifest: artifacts/runs/phase14b_training_labels_resume_v1/manifest.json
+  phase14b_lock: experiments/phase14b_training_labels_resume_v1.lock.json
+  phase14c_lock: experiments/phase14c_memorization_v2.lock.json
+  phase14c_manifest: artifacts/runs/phase14c_memorization_v2/manifest.json
+  phase14c_metrics: artifacts/runs/phase14c_memorization_v2/metrics.json
+  phase13_layout_audit: artifacts/runs/phase13_layout_hash_audit_v2.json
+  previous_history_audit: artifacts/runs/phase13_layout_hash_audit_v2.json
+  phase14c_metrics_schema: phase14c_memorization_result_v2
+
+splits:
+  model_selection: {seed_start: 191000, count: 40, purpose: select_fixed_model_variant}
+  offline_gate: {seed_start: 191040, count: 40, purpose: independent_offline_gate_only}
+  closed_loop_development: {seed_start: 192000, count: 100, purpose: conditional_closed_loop_development}
+  reserve: {seed_start: 130000, count: 200, access: forbidden}
+  states_per_layout: 2
+  trajectory_fractions: [0.33, 0.67]
+  trajectory_index: "floor(f * (active_decision_count - 1) + 0.5)"
+
+teacher:
+  definition: force_one_primitive_transition_then_resume_frozen_phase12_shooting_until_terminal
+  planner: {horizon: 8, sequences: 128}
+  seed_schedule: "(episode_seed * 1000003 + absolute_elapsed_steps) mod 2^32"
+  actions: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  continuation: exact_phase12_teacher
+  target: phase14b_structured_objective_and_normalized_regret
+
+student:
+  input_allowlist: [student_input_52, physics9_derived_only_from_student_input_52]
+  forbidden_inputs: [episode_seed, layout_hash, decision_index, teacher_cost, regret, successor_state, future_state, terminal_state, comparator_action]
+  learners: [nearest_neighbor, decision_tree, tiny_mlp]
+  feature_variants: [raw52, raw52_plus_physics9]
+  target_variants: [within_state_normalized_regret9, standardized_structured_objective27]
+  fit_only_on: phase14b_training_records
+  normalization_fit_only_on: phase14b_training_records
+  tiny_mlp: {hidden: [64, 64], activation: relu, seed: 141400, max_epochs: 3000}
+
+geometry_comparator:
+  route: A_star_from_initial_state
+  resolution: 0.04
+  waypoint_tolerance: 0.03
+
+selection:
+  primary: minimize_layout_macro_mean_normalized_teacher_regret
+  aggregation: mean_two_states_within_layout_then_mean_layouts
+  ties: [lower_median_decision_latency, fewer_serialized_model_bytes, lexicographic_candidate_id]
+  no_fit_on_model_selection_data: true
+
+offline_gate:
+  minimum_mean_regret_improvement_over_geometry: 0.05
+  paired_layout_bootstrap_lower_95_above: 0.0
+  bootstrap_resamples: 10000
+  bootstrap_seed: 141011
+  reserve_access: false
+
+closed_loop_gate_if_offline_passes:
+  layouts: {seed_start: 192000, count: 100}
+  retain_fraction_of_phase13a_shooting_minus_geometry_safe_success_gap: 0.5
+  paired_success_lower_95_above_geometry: 0.0
+  collision_difference_upper_95_maximum: 0.02
+  median_latency_maximum_fraction_of_shooting: 0.5
+  reserve_access: false
+
+resource_caps:
+  wall_time_seconds: null
+  storage_bytes: null
+  note: user_removed_project_wide_wall_time_and_storage_caps_on_2026_09_29
+
+authorization:
+  hash_audit_only_initially: true
+  model_selection_labels: conditional_on_committed_hash_audit_and_source_lock
+  offline_gate_labels: false
+  offline_gate_requires_selected_model_lock: true
+  closed_loop_development: false
+  closed_loop_requires_offline_gate_pass_and_separate_lock: true
+  dagger: false
+  learned_world_model: false
+  reserve: false
+
+outputs:
+  hash_audit: artifacts/runs/phase14d_layout_hash_audit_v2.json
+  selection_lock: experiments/phase14d_model_selection_v2.lock.json
+  model_selection_dir: artifacts/runs/phase14d_model_selection_v2
+  model_selection_report: reports/phase14d_model_selection_v2_result.md

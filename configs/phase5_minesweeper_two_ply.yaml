@@ -1,0 +1,70 @@
+project:
+  name: consequence-lab
+  phase: 5B
+  protocol: popgym_minesweeper_easy_two_ply_screen_v1
+  authorization: D049_training_seed_two_ply_planner_screen
+  validation_or_test_access_authorized: false
+  teacher_label_generation_authorized: false
+  student_training_authorized: false
+  calibration_fit_authorized: false
+  max_total_cpu_seconds: 600
+  max_generated_artifact_bytes: 100000000
+
+environment:
+  package: popgym
+  version: 1.0.7
+  source_revision: 96ab5be64f41587feab634dbc115ad7be8bdd094
+  wheel_sha256: 23be7f754f3167f58c4ac844426f3e0f7230035bedfcd5d85b004524eef21bb6
+  python_version: 3.11.15
+  gymnasium_version: 1.3.0
+  numpy_version: 2.4.6
+  task: MineSweeperEasy
+  board_shape: [4, 4]
+  mine_count: 2
+  reward:
+    success: 0.07142857142857142
+    failure: -0.5714285714285714
+  seed_start: 260100
+  seed_count: 100
+  candidate_id: row_major_cell_index
+  runtime_information: revealed_cell_mask_and_neighbor_counts
+  hidden_information_forbidden_at_decision_time: [hidden_grid, mine_locations, simulator_state]
+
+planner:
+  method: exact_two_ply_belief_lookahead
+  objective: undiscounted_sum_of_environment_rewards_for_two_actions
+  observation_branching: exact_neighbor_mine_count_distribution
+  belief_prior: uniform_over_two_mine_subsets
+  replan_after_each_real_observation: true
+  episode_ends_after_last_safe_reveal: true
+  candidate_tie_break: stable_cell_id
+  save_action_traces: false
+
+baselines:
+  methods:
+    - exact_posterior_min_risk
+    - exact_posterior_min_risk_then_information_gain
+    - exact_two_ply_belief_lookahead
+  random_seed_salt: consequence-lab/phase5/minesweeper/two-ply-v1
+
+statistics:
+  episode_unit: seed
+  paired_bootstrap_replicates: 10000
+  paired_bootstrap_seed: 505002
+  interval: percentile_95_seed_paired_binary_win_rate
+  primary_comparison: two_ply_minus_posterior_min_risk_win_rate
+  secondary_comparisons: [mean_return, decision_cpu_seconds_per_episode]
+
+gate:
+  candidate_advance_requires_win_rate_gain_minimum: 0.10
+  paired_bootstrap_lower_bound_strictly_greater_than: 0.0
+  planner_cpu_multiple_over_min_risk_minimum: 5.0
+  decision_cpu_definition: process_cpu_time_inside_policy_selection_only
+  otherwise: stop_minesweeper_easy_before_teacher_labels
+
+artifacts:
+  run_directory: artifacts/runs/phase5_minesweeper_two_ply_v1
+  refuse_overwrite: true
+  save_episode_aggregates_only: true
+  save_action_traces: false
+  save_hidden_board: false

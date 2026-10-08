@@ -1,0 +1,46 @@
+phase: 14
+stage: phase14b_full_training_counterfactual_labels
+schema: phase14b_training_labels_config_v1
+status: frozen_before_full_label_generation
+updated: 2026-09-28
+
+source:
+  archive: artifacts/runs/phase12_train_teacher_v1
+  replay_audit: artifacts/runs/phase14_training_source_audit_v2.json
+  phase14a_output: artifacts/runs/phase14_teacher_audit_v2
+  phase14a_lock: experiments/phase14_source_lock_v2.json
+  training_layouts: {start: 140000, count: 120}
+  expected_states: 2095
+  read_forbidden: [phase12_validation, phase12_dagger, phase12_gate, reserve]
+
+teacher:
+  force_each_action_once: true
+  action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  continue_with_phase12_exact_shooting: {horizon: 8, sequences: 128}
+  common_seed_schedule: "(episode_seed * 1000003 + absolute_elapsed_steps) mod 2^32"
+  terminal_tuple: [terminal_class, conditional_primary_cost, total_noncoast_effort]
+  terminal_class_order: {success: 0, timeout: 1, collision: 2}
+  success_primary: steps_from_source_state
+  failure_primary: terminal_goal_distance
+  scalarization: forbidden
+  regret: "(average_rank - best_average_rank) / 8"
+
+authorization:
+  stage: full_training_labels_only
+  student_training: false
+  heldout_access: false
+  dagger: false
+  world_model: false
+  reserve_access: false
+
+outputs:
+  lock: experiments/phase14b_training_labels_v1.lock.json
+  run_dir: artifacts/runs/phase14b_full_train_labels_v1
+  records: artifacts/runs/phase14b_full_train_labels_v1/first_action_values.jsonl
+
+resources:
+  device: cpu
+  wall_seconds: 10800
+  generated_bytes: 20971520
+  overwrite_forbidden: true
+  preflight_projection_from_phase14a: true

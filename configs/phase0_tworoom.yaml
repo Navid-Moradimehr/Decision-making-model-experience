@@ -1,0 +1,84 @@
+project:
+  name: consequence-lab
+  phase: 0
+  seed: 601
+  device: auto
+  max_gpu_hours: 8
+  generated_artifact_target_bytes: 1000000000
+  generated_artifact_stop_bytes: 2000000000
+
+environment:
+  id: swm/TwoRoom-v1
+  implementation: stable-worldmodel
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  geometry: fixed
+  control_rate: native
+  max_episode_steps: 200
+  success_distance_px: 16.0
+
+data:
+  max_transitions: 100000
+  max_teacher_decisions: 20000
+  episode_split:
+    train: 0.70
+    validation: 0.10
+    calibration: 0.10
+    test: 0.10
+  trajectory_sources:
+    - noisy_geometric_controller
+    - persistent_random
+  compression: npz-compressed
+
+candidates:
+  primitive_actions: 9 # eight unit directions and wait
+  unique_sequences: 65 # all ordered two-direction pairs plus wait
+  horizons_steps: [16, 32, 64]
+  execution_steps: 1
+  ablation_counts: [17, 33, 65]
+  preserve_wait: true
+  preserve_straight_candidates: true
+
+world_model:
+  type: residual_mlp
+  hidden_dims: [128, 128]
+  outputs: next_numeric_state
+  baselines: [persistence, linear_dynamics]
+  freeze_before_planning: true
+
+objective:
+  terminal_distance_weight: 1.0
+  mean_distance_weight: 0.1
+  distance_scale: arena_diagonal
+  reached_goal_absorbing: true
+  teacher_temperature_fraction_of_train_cost_iqr: 0.1
+  teacher_temperature_floor: 0.000001
+
+student:
+  initial: shared_candidate_mlp
+  hidden_dims: [128, 128]
+  max_parameters: 1000000
+  architectures: [shared_candidate_mlp, candidate_transformer]
+  state_only_inputs_exclude: [predicted_future, planner_cost, planner_ranking, teacher_choice]
+
+evaluation:
+  training_seeds: [601, 602, 603]
+  paired_test_episodes_per_seed: 200
+  oracle_development_seed_start: 202900
+  oracle_development_episode_count: 40
+  development_horizons_steps: [16, 32, 64]
+  horizon_selection:
+    rule: smallest_horizon_meeting_candidate_success_and_gain_point_gates
+    use_confirmation_test_for_selection: false
+  oracle_test_seed_start: 202700
+  oracle_test_episode_count: 200
+  protocol_v2:
+    selected_horizon_steps: 64
+    confirmation_seed_start: 203000
+    confirmation_episode_count: 200
+    selection_note: "Development confidence intervals after v1 gate failure; deviation from smallest-point-pass rule"
+  candidate_success_threshold: 0.8
+  minimum_candidate_gain_over_greedy: 0.1
+  minimum_pairwise_ranking_accuracy: 0.9
+  maximum_normalized_planner_regret: 0.1
+  maximum_student_success_gap: 0.05
+  minimum_student_speedup: 10.0

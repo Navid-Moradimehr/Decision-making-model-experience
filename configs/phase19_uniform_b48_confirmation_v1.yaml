@@ -1,0 +1,93 @@
+schema: phase19-uniform-b48-confirmation-v1
+status: design-frozen-not-implemented-or-execution-locked
+protocol: reports/phase19_uniform_b48_confirmation_protocol.md
+authorization: existing_user_evidence_based_followup_authorization
+parent:
+  result: artifacts/runs/phase18b_fresh_b48_proposal_controls_v2/result.json
+  result_sha256: 48F2BADA06E4C8D1CE6D567B22699B2A39A1AF193B4D28906DF497BA870997A2
+  lock: experiments/phase18b_fresh_b48_proposal_controls_v2.lock.json
+  lock_sha256: ADE3452440CA7E7D11F4938F0CFE656849E2BD3AA6E283AA6854BB6BB9576AD0
+  scientific_config: configs/phase18_intermediate_budget_proposal_v1.yaml
+scope:
+  training: false
+  learned_proposals: false
+  teacher_targets: false
+  adaptive_budget: false
+  refinement: false
+  dagger: false
+  standalone_student_control: false
+  learned_world_model: false
+  reserve_test_d168_access: false
+block:
+  proposed_seed_start: 203000
+  proposed_layout_count: 500
+  freshness: pending_hash_only_audit_not_generated
+  reserve_sealed_half_open: [130000, 130200]
+  d168_sealed_half_open: [197000, 197100]
+  phase17_consumed_half_open: [201000, 201500]
+  phase18_consumed_half_open: [202000, 202500]
+  replicas: [0, 1, 2]
+  episodes: 3500
+methods:
+  - {name: uniform_b48, budget: 48, replicas: 3}
+  - {name: uniform_b64, budget: 64, replicas: 3}
+  - {name: geometry_waypoint, budget: null, replicas: 1}
+planning:
+  implementation: unchanged_phase18_exact_rollout_and_uniform_prefix_bank
+  horizon: 8
+  mandatory_constants: 9
+  uniform_residual_actions: true
+  uniform_suffix: true
+  unique_sequences: true
+  attempt_cap: 1280000
+  objective: frozen_phase11_lexicographic
+  tie_break: lexicographic_sequence
+  query_seed_formula: (layout_seed*1000003+decision_index+replica*2654435769) mod 2^32
+  actual_budget: min(nominal_budget,9**remaining_horizon)
+geometry: {resolution: 0.04, waypoint_tolerance: 0.03}
+analysis:
+  sampling_unit: layout_sha256
+  replica_aggregation: average_three_within_layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 19003
+  order_seed: 19002
+  order_formula: order_seed+layout_seed
+  descriptive_confidence: 0.95
+  rare_event_one_sided_exact_confidence: 0.9916666666666667
+  success_one_sided_bootstrap_confidence: 0.9833333333333333
+  confidence_choice: deliberately_preserve_stricter_phase18_levels_for_one_prespecified_candidate
+  transitions: mean_of_per_layout_u48_to_u64_ratios_with_two_sided_95_ci
+  latency: ratio_of_pooled_per_decision_medians
+gates:
+  b64_reference:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_95_lower_strictly_above: 0.0
+  uniform_b48:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    adjusted_success_difference_lower_at_least: -0.05
+    success_regression_layout_event_upper_at_most: 0.05
+    added_collision_layout_event_upper_at_most: 0.05
+    mean_transition_ratio_at_most: 0.85
+    transition_ratio_95_upper_at_most: 0.90
+    median_latency_ratio_at_most: 0.85
+execution:
+  device: cpu
+  torch_threads: 16
+  serial: true
+  append_only: true
+  resume: exact_global_and_local_schedule_prefix
+  no_interim_scoring_or_extension: true
+  proposal_checkpoint_loading: false
+  outcomes_require_committed_implementation_tests_identity_audit_and_immutable_lock: true
+  no_wall_clock_or_storage_cap: true
+outputs:
+  run_dir: artifacts/runs/phase19_uniform_b48_confirmation_v1
+  execution_lock: experiments/phase19_uniform_b48_confirmation_v1.lock.json
+  report: reports/phase19_uniform_b48_confirmation_result.md

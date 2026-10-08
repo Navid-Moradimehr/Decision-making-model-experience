@@ -1,0 +1,42 @@
+schema: phase15_d153_validation_audit_v1
+parents:
+  prompt: new Prompt.md
+  d152_lock: experiments/phase15_representation_sufficiency.lock.json
+  d152_manifest: artifacts/runs/phase15_representation_sufficiency_v1/manifest.json
+  d152_result: artifacts/runs/phase15_representation_sufficiency_v1/result.json
+  d152_predictions: artifacts/runs/phase15_representation_sufficiency_v1/train_validation_predictions.npz
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d150_r4_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+split:
+  train_layout_count: 60
+  validation_layout_count: 20
+  train_row_count: 571
+  validation_row_count: 202
+  train_layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+distance:
+  full_r0_dimension: 61
+  feature_groups:
+    state_and_constants: [0, 16]
+    layout_geometry: [16, 52]
+    physics_derived: [52, 61]
+  support_threshold: train_leave_one_out_p90
+  additional_threshold_multipliers: [2.0]
+analysis:
+  predictors: [constant, knn_k1, knn_k5, cart, mlp32]
+  catastrophic_regret_threshold: 0.5
+  distance_quartiles: 4
+  cluster_bootstrap_resamples: 5000
+  cluster_bootstrap_seed: 153001
+  correlations: [pearson, spearman]
+scope:
+  training_rows_used_for_model_fit: false
+  validation_rows_used_for_descriptive_analysis: true
+  test_features_or_targets_indexed: false
+  reserve_access: false
+  simulator_or_planner_calls: false
+  new_transitions_or_episodes: false
+  closed_loop: false
+outputs:
+  run_dir: artifacts/runs/phase15_d153_validation_audit_v1
+  report: reports/phase15_d153_validation_coverage_analysis.md

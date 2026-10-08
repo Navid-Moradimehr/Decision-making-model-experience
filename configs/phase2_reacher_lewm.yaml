@@ -1,0 +1,132 @@
+project:
+  name: consequence-lab
+  phase: phase2_reacher_lewm
+  purpose: frozen visual world-model feasibility and action-ranking validation
+  max_gpu_hours: 0
+  generated_artifact_target_bytes: 1000000000
+  generated_artifact_stop_bytes: 2000000000
+  training_authorized: false
+  teacher_generation_authorized: false
+  student_training_authorized: false
+  closed_loop_performance_evaluation_authorized: false
+
+environment:
+  id: swm/ReacherDMControl-v0
+  source: https://github.com/galilai-group/stable-worldmodel
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  task: qpos_match
+  physics: MuJoCo through DeepMind Control Suite
+  action_dimension: 2
+  normalized_action_bounds: [-1.0, 1.0]
+  documented_wrapper_action_repeat: 2
+  task_timing: 5 action frames per block x wrapper repeat 2; verify in pinned wrapper
+  qpos_match_termination_threshold_radians: 0.05
+  goal_source: target_qpos set from a separate goal observation
+  goal_offset_steps: 25
+  render_resolution: [224, 224]
+  task_variations: disabled
+  target_visibility: must_match_checkpoint_training_setup
+
+world_model:
+  name: LeWorldModel Reacher checkpoint
+  source: https://huggingface.co/quentinll/lewm-reacher
+  revision: 62adae4b71dc474ddf8f794c476ebfe737a743ca
+  license: MIT
+  checkpoint_file: weights.pt
+  checkpoint_size_reported: 72.3 MB
+  checkpoint_sha256: eb70b1fd5409f8f81875d62f5ee5a20dd220a3128a477de66b5760f475f0f469
+  config_sha256: 2564086e961e7b5c7c04dffc451091115b389a590645ff19653c64fd0bc16e09
+  inference_environment:
+    python: 3.12
+    torch: 2.7.1+cpu
+    torchvision: 0.22.1+cpu
+    stable_pretraining: 0.1.8
+    transformers: 4.52.4
+    einops: 0.8.2
+    gymnasium: 1.2.3
+    dm_control: 1.0.47
+    mujoco: 3.14.0
+  parameters:
+    encoder: vit_tiny
+    image_size: 224
+    patch_size: 14
+    predictor_num_frames: 3
+    latent_dim: 192
+    action_encoder_input_dim: 10
+  official_image_preprocessing:
+    channel_order: RGB_to_CHW
+    convert_to_float_scale_0_1: true
+    normalize: ImageNet_mean_std
+    resize: [224, 224]
+  policy_context:
+    real_observation_history_len: 1
+    predicted_latent_window: 3
+    action_block_env_steps: 5
+    action_block_flattened_dim: 10
+  official_evaluation_reference:
+    plan_horizon_blocks: 5
+    receding_horizon_blocks: 5
+    action_block_frames: 5
+    policy_real_history_len: 1
+    goal_offset_steps: 25
+    initialization_dataset: dmc/reacher_random
+    evaluation_episodes: 50
+    note: reference only; do not download the full dataset or assume identical local sampling
+  frozen: true
+  train_or_finetune: false
+  download_only_after_environment_smoke: true
+
+compatibility_gate:
+  run_before_performance_protocol: true
+  max_seeded_resets: 3
+  required_checks:
+    - exact_environment_id_and_task
+    - qpos_match_goal_state_and_termination_contract
+    - observation_action_and_action_repeat_contract
+    - deterministic_reset_and_replay
+    - goal_target_visibility_matches_checkpoint
+    - rendered_frame_shape_dtype_range_and_channel_order
+    - one_real_frame_policy_context_and_three_latent_predictor_window
+    - five_step_two_torque_action_block_flattening
+    - image_preprocessing_matches_official_imagenet_transform
+    - finite_latent_predictions_for_bounded_actions
+    - source_checkpoint_and_dependency_hashes_recorded
+  failure_action: stop_and_report_interface_blocker_without_training
+
+development_design:
+  performance_seed_ranges_not_yet_frozen: true
+  state_distribution: reset_and_scripted_controller_trajectories
+  candidate_actions: deterministic_bounded_two_torque_sequences
+  candidate_generation_must_be_shared_by_model_and_simulator: true
+  ground_truth_branching: exact_state_clone_or_deterministic_prefix_replay
+  compare:
+    - frozen_lewm_goal_embedding_cost
+    - simulator_terminal_goal_distance
+    - simulator_dense_task_return
+    - state_feedback_classical_controller
+    - random_shooting
+  report:
+    - candidate_set_oracle_coverage
+    - pairwise_tie_aware_cost_ranking
+    - top1_agreement
+    - normalized_regret
+    - rollout_horizon
+    - actual_vs_predicted_goal_distance
+    - wall_clock_latency_and_device
+    - categorized_failures
+  screening_thresholds:
+    candidate_set_oracle_coverage_at_least: 0.80
+    pairwise_tie_aware_ranking_at_least: 0.90
+    normalized_regret_at_most: 0.10
+  confirmation_seed_ranges: assign_only_after_compatibility_and_development_protocol_are_frozen
+
+next_gate:
+  required_for_performance_evaluation:
+    - compatibility_gate_passed
+    - exact_candidate_and_objective_contract_frozen
+    - disjoint_development_and_confirmation_episode_seeds_frozen
+    - no_test_set_selection
+  required_for_any_teacher_or_student:
+    - independent_confirmation_clears_all_three_screening_thresholds
+    - candidate_availability_and_state_distribution_coverage_reported
+  model_based_rl_claim_authorized: false

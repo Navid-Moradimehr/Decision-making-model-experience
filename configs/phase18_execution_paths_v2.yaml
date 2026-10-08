@@ -1,0 +1,11 @@
+schema: phase18-execution-paths-amendment-v2
+scientific_config: configs/phase18_intermediate_budget_proposal_v1.yaml
+outputs:
+  global_prior: artifacts/runs/phase18a_fixed_state_proposal_controls_v1/global_prior.json
+  stage18a_run_dir: artifacts/runs/phase18a_fixed_state_proposal_controls_v2
+  stage18b_run_dir: artifacts/runs/phase18b_fresh_b48_proposal_controls_v2
+  expected_stage18a_lock: experiments/phase18a_fixed_state_proposal_controls_v2.lock.json
+  expected_stage18b_lock: experiments/phase18b_fresh_b48_proposal_controls_v2.lock.json
+abort_parents:
+  lock: experiments/phase18a_fixed_state_proposal_controls_v1.lock.json
+  schedule: artifacts/runs/phase18a_fixed_state_proposal_controls_v1/execution_order.json

@@ -1,0 +1,62 @@
+schema: phase15_d160_convergence_v1
+status: training_only_convergence_audit_frozen
+protocol: reports/phase15_d160_protocol.md
+parents:
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+  d159_lock: experiments/phase15_d159_training_fit_v2.lock.json
+  d159_result: artifacts/runs/phase15_d159_training_fit_v2/result.json
+  d159_manifest: artifacts/runs/phase15_d159_training_fit_v2/manifest.json
+  d159_r0_checkpoint: artifacts/runs/phase15_d159_training_fit_v2/r0_action_only.npz
+  d159_predicted_checkpoint: artifacts/runs/phase15_d159_training_fit_v2/r0_action_predicted_outcome_steps.npz
+  d159_oracle_checkpoint: artifacts/runs/phase15_d159_training_fit_v2/r0_action_exact_outcome_steps_oracle.npz
+  d159_interpretation: reports/phase15_d159_interpretation.md
+continuation:
+  representations:
+    - r0_action_only
+    - r0_action_predicted_outcome_steps
+    - r0_action_exact_outcome_steps_oracle
+  rows: 1365
+  layouts: 140
+  warm_start_from_d159_best_checkpoint: true
+  reset_adam_moments: true
+  learning_rate: 0.002
+  l2: 0.00001
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  max_additional_epochs: 10000
+  evaluate_every_epochs: 25
+  convergence_window_epochs: 1000
+  min_additional_epochs_before_check: 2000
+  objective_relative_improvement_tolerance: 0.001
+  decision_metric_range_tolerance: 0.005
+  required_consecutive_converged_checks: 3
+  convergence_check_spacing_epochs: 250
+  checkpoint: minimum_training_listwise_plus_collision_objective
+  listwise_temperature: 0.25
+  collision_loss_weight: 1.0
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  model_width: 24
+  standardization: retain_D159_training_mean_std
+  training_targets: unchanged_D159_regret_and_collision
+scope:
+  training_only: true
+  d152_validation_read: false
+  d157_read: false
+  test_rows: false
+  reserve_access: false
+  simulator_calls: false
+  planner_calls: false
+  new_transitions_or_episodes: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+outputs:
+  lock: experiments/phase15_d160_convergence.lock.json
+  run_dir: artifacts/runs/phase15_d160_convergence_v1
+  report: reports/phase15_d160_result.md

@@ -1,0 +1,59 @@
+schema: phase15_d163_error_decision_audit_v1
+status: protocol_defined_not_scored
+protocol: reports/phase15_d163_protocol.md
+parents:
+  d162_lock: experiments/phase15_d162_fresh_layout_relational.lock.json
+  d162_result: artifacts/runs/phase15_d162_fresh_layout_relational_v1/result.json
+  d162_manifest: artifacts/runs/phase15_d162_fresh_layout_relational_v1/manifest.json
+  d162_rows: artifacts/runs/phase15_d162_fresh_layout_relational_v1/fresh_layout_rows.npz
+  d162_accounting: artifacts/runs/phase15_d162_fresh_layout_relational_v1/episode_accounting.json
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d161_result: artifacts/runs/phase15_d161_fit_boundary_v1/result.json
+  d161_manifest: artifacts/runs/phase15_d161_fit_boundary_v1/manifest.json
+  d161_r0_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_only_best_training_objective.npz
+  d161_predicted_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_predicted_outcome_steps_best_training_objective.npz
+  d161_exact_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_exact_outcome_steps_oracle_best_training_objective.npz
+  d162_fold_predictors:
+    - artifacts/runs/phase15_d162_fresh_layout_relational_v1/crossfit_cart_fold_0.json
+    - artifacts/runs/phase15_d162_fresh_layout_relational_v1/crossfit_cart_fold_1.json
+    - artifacts/runs/phase15_d162_fresh_layout_relational_v1/crossfit_cart_fold_2.json
+    - artifacts/runs/phase15_d162_fresh_layout_relational_v1/crossfit_cart_fold_3.json
+    - artifacts/runs/phase15_d162_fresh_layout_relational_v1/crossfit_cart_fold_4.json
+  d155_config: configs/phase15_d155_stage_c.yaml
+  d162_config: configs/phase15_d162_fresh_layout_relational.yaml
+analysis:
+  data: saved D162 rows only
+  frozen_scorers:
+    - r0_action_predicted_outcome_steps
+    - r0_action_exact_outcome_steps_oracle
+  feature_conditions:
+    - {outcome: predicted, steps: predicted}
+    - {outcome: exact, steps: predicted}
+    - {outcome: predicted, steps: exact}
+    - {outcome: exact, steps: exact}
+  outcome_classes: [success, timeout, collision]
+  collision_class_index: 2
+  no_refitting_or_tuning: true
+  primary_descriptive_metrics:
+    - layout_macro_normalized_selected_regret
+    - catastrophic_fraction_layout_macro
+    - safe_vs_collision_pair_accuracy
+    - low_regret_vs_catastrophic_pair_accuracy
+  component_metrics:
+    outcome: [confusion_matrix, per_class_precision_recall, collision_recall, collision_false_negative_rate, collision_brier, multiclass_log_loss]
+    steps: [mae, rmse, error_by_exact_terminal_outcome]
+  d162_parity_tolerance: 1.0e-10
+scope:
+  saved_d162_artifacts_only: true
+  new_simulator_or_planner_calls: false
+  model_training_or_updates: false
+  student_closed_loop: false
+  dagger: false
+  world_model_or_jepa: false
+  reserve_or_test_access: false
+  new_layouts_or_environment: false
+  causal_claims: false
+outputs:
+  lock: experiments/phase15_d163_error_decision_audit.lock.json
+  run_dir: artifacts/runs/phase15_d163_error_decision_audit_v1
+  report: reports/phase15_d163_result.md

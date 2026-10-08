@@ -1,0 +1,207 @@
+phase: 12c-C
+experiment: balanced_teacher_direct_student_comparison
+protocol_status: frozen_locked_after_hash_audit
+updated: 2026-09-28
+
+research_question: >-
+  Given the Phase 12c-B conditional target-stability pass, can a compact direct
+  candidate-value model or bounded candidate policy learn low-regret balanced
+  planner preferences from public state alone on unseen layouts?
+
+source_data:
+  training_splits:
+    - artifacts/runs/phase12_train_teacher_v1
+    - artifacts/runs/phase12_validation_teacher_v1
+  fitting_only: true
+  expected_layouts: 160
+  expected_replayed_states: 2828
+  exact_replay_audit: artifacts/runs/phase12cB_fitting_data_replay_audit.json
+  exact_replay_audit_sha256: 1B49B45D1A0CDF0282585E70D855AE018236D1E6E0ECF2F4019018FC8D54DBF1
+  training_source_lock: experiments/phase12b_training.lock.json
+  training_source_lock_sha256: DBFDD787D07A1F901259C87185E0DCB54CB3B55066FF0977F71B54E45F8692CD
+  source_data_audit: reports/phase12_teacher_data_audit.json
+  source_data_audit_sha256: 1BD557141A5638C7BE74F4DF79CD129A9E121E53314A7CB9A7DB654939B807E3
+  balanced_teacher_result: reports/phase12cA_balanced_teacher_qualification_160000_160099.md
+  balanced_teacher_manifest: artifacts/runs/phase12cA_balanced_teacher_160000_160099_retry1/manifest.json
+  balanced_teacher_manifest_sha256: 53118598B61F5E376BDC85289AA6A937CAA99DEE47B4C2008764A140D6B62FE0
+  repeated_bank_analysis: artifacts/runs/phase12cB_analysis_v1.json
+  repeated_bank_analysis_sha256: 7F66D685D8849705FCD852CAA7FF0F5D02557047E7116FA75E2B00C67F960061
+
+seed_splits:
+  model_selection: {start: 170000, count: 40, unit: layout_sha256}
+  offline_gate: {start: 170040, count: 40, unit: layout_sha256}
+  closed_loop_development: {start: 143000, count: 40, status: sealed_not_authorized}
+  dagger: {start: 142000, count: 120, status: sealed_not_authorized}
+  final_reserve: {start: 130000, count: 200, status: sealed_not_authorized}
+  hash_audit:
+    output: artifacts/runs/phase12cC_layout_audit_v4.json
+    prior_phase12cA_layout_audit: artifacts/runs/phase12cA_layout_audit_v2_160000_160099.json
+    prior_phase12cA_authorization_lock: experiments/phase12cA_authorization_v4.lock.json
+    supplemental_phase12b_hash_audit: artifacts/runs/phase12b_layout_audit_v4.json
+    forbidden_outcome_access: [development, dagger, reserve]
+
+teacher:
+  dynamics: exact_corridor_simulator
+  closed_loop_data_policy: balanced_receding_horizon_shooting
+  horizon: 8
+  suffixes_per_first_action: 14
+  first_action_count: 9
+  candidates_per_full_bank: 126
+  objective: exact_lexicographic_success_progress_effort
+  action_group_key: minimum_lexicographic_objective_per_first_action
+  bank_count_per_query: 12
+  preference_estimation_banks: [0, 1, 2, 3, 4, 5]
+  heldout_evaluation_banks: [6, 7, 8, 9, 10, 11]
+  query_seeds: sha256_of_phase_split_layout_state_bank_index
+  bank_seed_and_outcomes_student_input: false
+
+student_information:
+  inputs:
+    - public_numeric_state_52
+    - runtime_candidate_action_id_0_to_8
+  forbidden_inputs:
+    - teacher_costs_or_ranks
+    - bank_seed_or_bank_index
+    - candidate_rollouts_or_future_states
+    - privileged_simulator_state
+    - teacher_selected_action
+  candidate_set_size: 9
+  candidate_order_semantics: none
+
+models:
+  common:
+    architecture: shared_state_action_candidate_mlp
+    hidden_state: 128
+    embedding: 64
+    maximum_parameters: 100000
+    permutation_equivariance_by_shared_candidate_scorer: true
+  variants:
+    - id: direct_candidate_value
+      output: predicted_mean_normalized_rank_regret_per_action
+      target: mean_regret_over_banks_0_to_5
+      loss: layout_weighted_mean_squared_error
+      choose: argmin_predicted_regret
+    - id: bounded_preference_policy
+      output: nine_action_logits_then_masked_softmax
+      target: mean_tie_split_optimal_action_mass_over_banks_0_to_5
+      loss: layout_weighted_soft_cross_entropy
+      choose: max_probability_then_lowest_action_id
+  fitting:
+    optimizer: AdamW
+    learning_rate: 0.0003
+    weight_decay: 0.0001
+    batch_decision_sets: 32
+    max_epochs: 120
+    early_stopping_patience: 15
+    gradient_norm_clip: 1.0
+    seeds: [1321, 1322, 1323]
+    equal_total_weight_per_layout: true
+    checkpoint_selector: minimum_model_selection_layout_macro_heldout_argmax_regret
+
+data_generation:
+  master_seed: 2026092821
+  training_source_states: exact_replay_of_all_archived_fitting_queries
+  training_source_query_count: 2828
+  training_bank_count_per_query: 12
+  train_target_banks: [0, 1, 2, 3, 4, 5]
+  source_repeat_banks_diagnostic_only: [6, 7, 8, 9, 10, 11]
+  fresh_selection_layouts: 40
+  fresh_offline_gate_layouts: 40
+  fresh_state_distribution: balanced_teacher_closed_loop_queries
+  offline_gate_collection_after_checkpoint_lock: true
+  persist:
+    - public_state_features
+    - runtime_action_candidates
+    - per_bank_action_group_lexicographic_keys
+    - per_bank_ranks_and_normalized_regrets
+    - tie_split_optimal_action_mass
+    - layout_and_query_provenance
+  never_persist:
+    - raw_video
+    - candidate_trajectory_tensor
+  outputs:
+    archived_training: artifacts/runs/phase12cC_archived_training_v1
+    model_selection: artifacts/runs/phase12cC_model_selection_v1
+    selected_models: artifacts/runs/phase12cC_selected_models_v1
+    offline_gate: artifacts/runs/phase12cC_offline_gate_v1
+
+evaluation:
+  primary: heldout_banks_6_to_11_argmax_action_normalized_rank_regret
+  statistical_unit: layout_sha256
+  aggregation: query_mean_then_layout_macro_mean
+  bootstrap: {resamples: 10000, seed: 171001, confidence: 0.95, method: paired_layout_percentile}
+  baseline: geometry_waypoint
+  geometry_parameters: {resolution: 0.04, waypoint_tolerance: 0.03}
+  reference: train_half_empirical_modal_action
+  promotion_gate:
+    required_permutation_max_probability_deviation: 0.000001
+    required_semantic_choice_flips: 0
+    any_student_variant_must_pass: true
+    regret_point_mean_maximum: 0.15
+    one_sided_regret_upper_bound_maximum: 0.20
+    minimum_mean_improvement_over_geometry: 0.05
+    one_sided_improvement_lower_bound_minimum: 0.0
+    familywise_one_sided_confidence: 0.9875
+    reason: >-
+      Absolute regret limits inherit Phase 12c-B's operational target-stability
+      gate. The geometry comparison requires useful baseline headroom. Two
+      student families are evaluated; 98.75% one-sided bounds Bonferroni-control
+      the four family/metric advancement claims at 5% family-wise error.
+  secondary:
+    - heldout_teacher_optimal_set_inclusion
+    - heldout_pairwise_candidate_ranking
+    - expected_regret_under_student_probability_distribution
+    - optimal_set_nll_and_brier_against_empirical_tie_split_mass
+    - model_parameter_count
+    - cpu_inference_latency
+    - training_wall_time
+    - candidate_permutation_consistency
+
+stage_scope:
+  train_data_and_model_selection_collection: authorized
+  student_fitting: authorized_if_phase12cB_primary_gate_passed
+  offline_gate_collection_after_selected_checkpoint_lock: authorized
+  closed_loop_development: false
+  dagger: false
+  learned_world_model_or_jepa: false
+  reserve_accessed: false
+
+resource_caps:
+  device: cpu
+  max_total_wall_seconds: 10800
+  max_fit_wall_seconds: 7200
+  max_generated_artifact_bytes: 104857600
+  max_parameters: 100000
+
+runner_contract:
+  output_root: artifacts/runs
+  overwrite_forbidden: true
+  development_confirmation: RUN_PHASE12C_C_DEVELOPMENT_ONLY
+  offline_gate_confirmation: RUN_PHASE12C_C_OFFLINE_GATE_ONLY
+
+source_files:
+  - configs/phase12cC_locked.yaml
+  - reports/phase12cC_student_protocol.md
+  - reports/phase12cA_balanced_teacher_qualification_160000_160099.md
+  - reports/phase12cB_realizability_protocol.md
+  - reports/phase12cB_realizability_result.md
+  - artifacts/runs/phase12cB_analysis_v1.json
+  - artifacts/runs/phase12cB_fitting_data_replay_audit.json
+  - artifacts/runs/phase12cA_balanced_teacher_160000_160099_retry1/manifest.json
+  - src/consequence_lab/phase12c_c.py
+  - src/consequence_lab/phase12c_c_training.py
+  - src/consequence_lab/phase12c_b.py
+  - src/consequence_lab/phase12c.py
+  - src/consequence_lab/phase12_teacher.py
+  - src/consequence_lab/phase12_model.py
+  - src/consequence_lab/phase12_training.py
+  - src/consequence_lab/corridor_baselines.py
+  - src/consequence_lab/corridor_tasks.py
+  - src/consequence_lab/inertial_corridor.py
+  - scripts/audit_phase12cC_layouts.py
+  - scripts/collect_phase12cC_development.py
+  - scripts/train_phase12cC_students.py
+  - scripts/run_phase12cC_offline_gate.py
+  - scripts/freeze_phase12cC_lock.py
+  - scripts/freeze_phase12cC_selected_models.py
+  - tests/test_phase12c_c.py

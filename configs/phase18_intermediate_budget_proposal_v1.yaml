@@ -1,0 +1,180 @@
+schema: phase18-intermediate-budget-proposal-v1
+status: design_frozen_not_implemented_or_execution_locked
+protocol: reports/phase18_intermediate_budget_proposal_protocol.md
+parent_commit: f34ab01b9dc4332a34a5feef97f66da0c398b490
+
+parents:
+  phase17c_result:
+    path: artifacts/runs/phase17c_exact_guided_planner_v2/result.json
+    sha256: A9192CEC610FA7BF4B8045DC7BAFEEFCDCC82F6721781B0198B9AB4B884F0CC8
+  phase17c_manifest:
+    path: artifacts/runs/phase17c_exact_guided_planner_v2/manifest.json
+    sha256: 217171F79D8EF1B70E9AE1015F11A6469B9488486FBF7A9E302A0EAB8DA8D9DD
+  phase17c_lock: experiments/phase17c_guided_planner_execution_v2.lock.json
+  final_checkpoint:
+    path: artifacts/runs/phase17_learned_proposal_guidance_v1/canonical_soft_proposal.pt
+    sha256: 5CF51A25EA09BCDDC692F088A1D3896136220B2BA2EC5A9721B1885E005B3249
+  final_refit_manifest:
+    path: artifacts/runs/phase17_learned_proposal_guidance_v1/final_proposal_fit.json
+    sha256: 3A768ED7A8FCC978FEE71B71E501104729673A0C3AE6696F52C7279D77775C6A
+  teacher_queries:
+    path: artifacts/runs/phase17_learned_proposal_guidance_v1/teacher_queries.jsonl
+    sha256: 6CF4E1F187E87F458E533624DB3A128C01F3B8E1120549D3AA9E39A73B785993
+  phase17a_source_rows: artifacts/runs/phase17_learned_proposal_guidance_v1/pilot_result.json
+  phase17_training_contract: configs/phase17_learned_proposal_guidance_v1.yaml
+  phase16e_lock: experiments/phase16e_budget_reliability_confirmation_v1.lock.json
+
+scope:
+  current_action: design_only
+  training: false
+  change_checkpoint: false
+  alpha_selection: false
+  adaptive_budget: false
+  iterative_refinement: false
+  learned_action_authority: false
+  dagger: false
+  learned_world_model: false
+  standalone_student_control: false
+  new_environment: false
+  reserve_access: false
+  test_access: false
+  d168_evaluation_block_access: false
+  future_execution_requires_committed_sources_tests_and_immutable_locks: true
+
+proposal:
+  representation: frozen_d164_x_canonical
+  state_dimensions: 63
+  model_parameters: 8841
+  normalization: unchanged_frozen_phase17_checkpoint
+  alpha: 0.25
+  mixture_formula: alpha*q+(1-alpha)/9
+  minimum_uniform_mass: 0.75
+  learned_dimensions: residual_first_action_only
+  sequence_suffix: uniform
+  global_prior:
+    source_states: 1365
+    source_layouts: 140
+    repeats: [0, 16]
+    target: empirical_exact_best_sequence_first_action_tie_mass
+    weighting: equal_source_state_matching_final_model_loss
+    pseudocount_per_action: 0.5
+    formula: w=sum_state_targets+0.5_then_q=w/sum(w)
+    aggregation_dtype: float64
+    serialize_and_hash_before_outcomes: true
+
+planning:
+  environment: frozen_inertial_corridor
+  exact_dynamics: true
+  horizon: 8
+  action_count: 9
+  mandatory_constant_sequences: 9
+  unique_sequences: true
+  common_attempt_cap: 1280000
+  duplicate_policy: existing_rejection_then_uniform_fallback
+  objective: frozen_phase11_lexicographic
+  tie_break: lexicographic_action_sequence
+  authority: exact_rollout_and_exact_final_selection
+  query_seed_formula: (layout_seed*1000003+decision_index+replica*2654435769) mod 2^32
+  actual_budget_formula: min(nominal_budget,9**remaining_horizon)
+  methods:
+    - {name: uniform_b48, budget: 48, proposal: uniform, replicas: 3}
+    - {name: global_b48, budget: 48, proposal: global_alpha_0_25, replicas: 3}
+    - {name: learned_b48, budget: 48, proposal: frozen_canonical_soft_alpha_0_25, replicas: 3}
+    - {name: uniform_b64, budget: 64, proposal: uniform, replicas: 3}
+    - {name: geometry_waypoint, budget: null, proposal: null, replicas: 1}
+
+stage18a:
+  source: unchanged_phase17a_64_source_rows
+  layouts: 64
+  states_per_layout: 1
+  replicas: 32
+  replica_ids_half_open: [0, 32]
+  methods: [uniform_b48, global_b48, learned_b48, uniform_b64]
+  planner_queries: 8192
+  frozen_state_candidate_diagnostics_only: true
+  comparison: lexicographic_best_objective_win_tie_loss
+  diagnostic_selection_or_tuning: false
+  advancement_gate: software_and_integrity_contracts_only
+
+stage18b:
+  proposed_seed_start: 202000
+  proposed_layout_count: 500
+  fresh_status: pending_hash_only_audit_not_generated
+  replicas: [0, 1, 2]
+  expected_episodes: 6500
+  order_seed: 18002
+  order_seed_formula: order_seed+layout_seed
+  reserve_sealed_half_open: [130000, 130200]
+  d168_sealed_half_open: [197000, 197100]
+  phase17_consumed_half_open: [201000, 201500]
+  exclude_all_historical_training_outcome_and_sealed_identities: true
+  interim_scoring_or_optional_extension: false
+
+geometry:
+  resolution: 0.04
+  waypoint_tolerance: 0.03
+
+analysis:
+  sampling_unit: layout_sha256
+  replica_aggregation: average_three_within_layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 18003
+  descriptive_two_sided_confidence: 0.95
+  qualification_candidates: [uniform_b48, global_b48, learned_b48]
+  qualification_rare_event_bounds: 6
+  qualification_rare_event_one_sided_exact_confidence: 0.9916666666666667
+  qualification_success_one_sided_bootstrap_confidence: 0.9833333333333333
+  learning_attribution_one_sided_bootstrap_confidence: 0.9875
+  learning_attribution_bound_count: 4
+  transition_ratio_estimand: mean_of_per_layout_candidate_to_b64_ratios
+  latency_estimand: ratio_of_pooled_per_decision_medians
+  paired_event_definition: any_same_replica_discordance_counted_once_per_layout
+
+gates:
+  b64_reference:
+    mean_success_strictly_above: 0.90
+    mean_collision_at_most: 0.05
+    every_replica_success_at_least: 0.85
+    every_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_95_ci_lower_strictly_above: 0.0
+  each_b48_qualification:
+    mean_success_strictly_above: 0.90
+    mean_collision_at_most: 0.05
+    every_replica_success_at_least: 0.85
+    every_replica_collision_at_most: 0.10
+    adjusted_success_difference_lower_vs_b64_at_least: -0.05
+    adjusted_success_regression_upper_vs_b64_at_most: 0.05
+    adjusted_added_collision_upper_vs_b64_at_most: 0.05
+    mean_transition_ratio_vs_b64_at_most: 0.85
+    transition_ratio_95_ci_upper_vs_b64_at_most: 0.90
+    median_latency_ratio_vs_b64_at_most: 0.85
+  learning_attribution:
+    requires_learned_b48_qualification: true
+    comparators: [uniform_b48, global_b48]
+    success_gain_at_least_each: 0.005
+    adjusted_success_gain_lower_strictly_above_each: 0.0
+    adjusted_collision_increase_upper_at_most_each: 0.005
+    candidate_availability_cannot_replace_episode_gate: true
+
+execution:
+  device: cpu
+  torch_intraop_threads: 16
+  parallel_episodes: false
+  append_only: true
+  resume: exact_locked_schedule_prefix_only
+  diagnostic_overhead_in_decision_latency: false
+  proposal_inference_in_decision_latency: true
+  discard_latency_outliers: false
+  no_inherited_wall_clock_or_storage_cap: true
+  estimate_hours: [2, 3]
+  estimate_artifact_mib: [100, 200]
+  estimates_are_limits: false
+
+outputs:
+  stage18a_run_dir: artifacts/runs/phase18a_fixed_state_proposal_controls_v1
+  stage18b_run_dir: artifacts/runs/phase18b_fresh_b48_proposal_controls_v1
+  expected_stage18a_lock: experiments/phase18a_fixed_state_proposal_controls_v1.lock.json
+  expected_stage18b_lock: experiments/phase18b_fresh_b48_proposal_controls_v1.lock.json
+  stage18a_and_stage18b_locks_currently_exist: false
+  final_report: reports/phase18_intermediate_budget_proposal_result.md

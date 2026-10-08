@@ -1,0 +1,80 @@
+schema: phase15_d165_action_effect_alignment_v2
+status: locked_v2_metric_broadcast_correction
+protocol: reports/phase15_d165_protocol_amendment_v1.md
+parents:
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d162_query_rows: artifacts/runs/phase15_d162_fresh_layout_relational_v1/fresh_layout_rows.npz
+  d162_result: artifacts/runs/phase15_d162_fresh_layout_relational_v1/result.json
+  d162_manifest: artifacts/runs/phase15_d162_fresh_layout_relational_v1/manifest.json
+  d162_lock: experiments/phase15_d162_fresh_layout_relational.lock.json
+  d161_result: artifacts/runs/phase15_d161_fit_boundary_v1/result.json
+  d161_manifest: artifacts/runs/phase15_d161_fit_boundary_v1/manifest.json
+  d161_r0_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_only_best_training_objective.npz
+  d161_predicted_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_predicted_outcome_steps_best_training_objective.npz
+  d161_oracle_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_exact_outcome_steps_oracle_best_training_objective.npz
+  d164_lock: experiments/phase15_d164_representation_symmetry_audit.lock.json
+  d164_result: artifacts/runs/phase15_d164_representation_symmetry_audit_v1/result.json
+  d164_manifest: artifacts/runs/phase15_d164_representation_symmetry_audit_v1/manifest.json
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+data:
+  expected_training_rows: 1365
+  expected_training_layouts: 140
+  expected_query_rows: 1046
+  expected_query_layouts: 100
+  require_layout_disjointness: true
+  internal_validation_fold: 0
+  fold_count: 5
+  fold: sha256_layout_hex_prefix_integer_mod_5
+representation:
+  state: d164_canonical_agent_relative_63
+  action: normalized_physical_acceleration_vector_2
+  student_input_dimension: 65
+  outcome_class_order: [success, timeout, collision]
+  outputs: [outcome_logits_3, normalized_terminal_steps_1]
+model:
+  family: shared_action_conditioned_mlp
+  hidden: [32, 32]
+  seed: 16551
+  learning_rate: 0.002
+  l2: 0.00001
+  max_epochs: 600
+  patience: 60
+  checkpoint: minimum_internal_validation_absolute_outcome_cross_entropy_plus_steps_mse
+  effect_coefficient: 1.0
+  optimizer: full_batch_adam
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 0.00000001
+  pair_regret_gap_scale: 0.5
+  safe_regret_max: 0.125
+  catastrophic_regret_min: 0.5
+  safe_catastrophic_pair_multiplier: 2.0
+  collision_pair_multiplier: 2.0
+evaluation:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  minimum_macro_regret_improvement: 0.02
+  minimum_catastrophic_fraction_improvement: 0.05
+  maximum_safe_collision_accuracy_drop: 0.02
+  scorer_sensitivity_heads: [d161_predicted_consequence, d161_exact_consequence_oracle]
+  bootstrap_resamples: 2000
+  bootstrap_seed: 16501
+scope:
+  d153_training_and_internal_layout_validation: true
+  reused_d162_exploratory_query_scoring: true
+  new_simulator_labels: false
+  simulator_calls: false
+  planner_calls: false
+  new_layouts: false
+  closed_loop: false
+  dagger: false
+  world_model_training: false
+  jepa: false
+  reserve_access: false
+  test_access: false
+outputs:
+  lock: experiments/phase15_d165_action_effect_alignment_v2.lock.json
+  run_dir: artifacts/runs/phase15_d165_action_effect_alignment_v2
+  report: reports/phase15_d165_v2_result.md

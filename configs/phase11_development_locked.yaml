@@ -1,0 +1,101 @@
+phase: 11
+experiment: corridor_baseline_independent_development_screen
+stage: development_screen
+protocol_status: locked_for_execution
+execution_authorized: true
+performance_data_authorized: true
+training_authorized: false
+
+task:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  generator_sha256: 47CC5FF39643428EBA6D031C377402FF585B83FE5AE63E8217927308D08DAA1E
+  family: three_baffle_two_openings
+  max_steps: 160
+  public_state_only: true
+
+seed_block:
+  name: development_screen
+  start: 120000
+  count: 100
+  grouping_unit: layout_sha256
+  rule: Run the already frozen primary comparison only. Do not tune methods, objectives, candidate proposals, thresholds, or gates on development outcomes. Reserve remains closed.
+
+selection_provenance:
+  selection_report: reports/phase11_frozen_configuration_selection_110008_110039.md
+  selection_report_sha256: 29967F494983259C57C8710FCAB09DE334BE75685692E41F6E7B8FE5E1886A93
+  selection_episodes: artifacts/runs/phase11_frozen_selection_110008_110039_20260927/episodes.jsonl
+  selection_episodes_sha256: 3124D4B5F19A2F57238916EE1FE3064316790E6C0C2CC0C7C65525718F4DFCD8
+  selection_manifest: artifacts/runs/phase11_frozen_selection_110008_110039_20260927/manifest.json
+  selection_manifest_sha256: 27FBA6FCC8B434146B3D1887852EDA6EAFAC8E9067578AA7B2CA7F1B332E5A65
+  selection_locked_config: configs/phase11_frozen_selection_locked.yaml
+  selection_locked_config_sha256: 750C26057694BC51BC008040D20905C226AE61476515EC08509F3A05BDEE3D66
+  selection_authorization_lock: experiments/phase11_frozen_selection_authorization.lock.json
+  selection_authorization_lock_sha256: AB884BEC8E4E0FF37BDA46E51010F86E6CF0B164656EA6405D6F2F12ECE501EC
+
+frozen_comparison:
+  primary_method: random_shooting
+  primary_parameters: {horizon: 8, num_sequences: 128}
+  primary_configuration_id: e1b1dbae01ab5bdd
+  comparator_method: geometry_waypoint
+  comparator_parameters: {resolution: 0.04, waypoint_tolerance: 0.03}
+  comparator_configuration_id: a46c49f74e03dcb0
+  selection_basis: Highest safe-success rate among the three predeclared cheap baselines on seeds 110008-110039; exact tie-breaks are frozen in the selection report.
+  contrast_direction: random_shooting_minus_geometry_waypoint
+
+primary_outcome:
+  name: paired_safe_success_rate_difference
+  practical_minimum_absolute_gain: 0.10
+  pass_headroom:
+    point_gain_at_least: 0.10
+    paired_layout_bootstrap_95_percent_lower_bound_gain_above: 0.0
+    collision_rate_difference_95_percent_upper_bound_at_most: 0.02
+  pass_amortization_motivation:
+    median_planner_to_comparator_wall_latency_per_decision_ratio_at_least: 10.0
+  bootstrap:
+    resamples: 10000
+    seed: 110011
+    unit: layout_sha256
+    paired_methods: true
+  interpretation: Apply the declared headroom and amortization gates without retuning. If a gate fails or is inconclusive, do not train a student from this task.
+
+secondary_outcomes:
+  - per_method_safe_success_rate
+  - collision_rate
+  - timeout_rate
+  - planner_failure_rate
+  - steps_to_success
+  - control_effort
+  - median_wall_seconds_per_decision
+  - median_wall_seconds_per_episode
+  - shooting_horizon_success_availability
+  - shooting_success_available_queries
+
+compute_caps:
+  device: cpu
+  total_wall_seconds: 10800
+  generated_artifact_bytes: 20971520
+  on_cap: Stop at the first episode boundary after a cap is reached and preserve partial results as aborted. Do not extend the block without a new decision. One in-flight episode may finish after the wall cap.
+
+artifact_policy:
+  save_seed_and_geometry_hash_per_episode: true
+  save_terminal_status_and_summary_metrics: true
+  save_full_candidate_trajectories: false
+  save_teacher_labels_or_models: false
+
+runner_contract:
+  first_executable_stage: development_screen
+  locked_config_path: configs/phase11_development_locked.yaml
+  authorization_lock_path: experiments/phase11_development_authorization.lock.json
+  authorization_lock_format: phase11_execution_lock_v1
+  required_cli_confirmation: RUN_PHASE11_DEVELOPMENT_SCREEN
+  output_root: artifacts/runs
+  abort_check_boundary: between_episodes
+  maximum_episode_record_bytes: 65536
+  maximum_manifest_bytes: 65536
+  stage_isolation: This runner executes only seeds 120000-120099 and the two frozen primary methods. It cannot open reserve seeds or train a model.
+
+limitations:
+  - This evaluates generalization only to held-out layouts within the same three-baffle/two-opening topology family.
+  - The comparator was selected on a separate 32-layout block; no tuning is permitted here.
+  - This is not an external validation/test block; reserve `[130000,130200)` remains unopened.
+  - Even a pass establishes exact-known-dynamics planner value only, not learned-world-model usefulness, JEPA value, distillation, or model-based RL.

@@ -1,0 +1,76 @@
+schema: phase15_representation_screen_v1
+status: authorized_offline_development_screen
+parents:
+  feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  feature_manifest: artifacts/runs/phase15_offline_v2/features/manifest.json
+  prior_objective_result: artifacts/runs/phase15_fullsplit_objective_generalization_v1/result.json
+  prior_objective_manifest: artifacts/runs/phase15_fullsplit_objective_generalization_v1/manifest.json
+  prior_objective_lock: experiments/phase15_fullsplit_objective_generalization.lock.json
+  prior_fit_audit_result: artifacts/runs/phase15_training_fit_audit_v1/result.json
+  prior_fit_audit_manifest: artifacts/runs/phase15_training_fit_audit_v1/manifest.json
+  prior_fit_audit_lock: experiments/phase15_training_fit_audit.lock.json
+checkpoint_dir: artifacts/runs/phase15_fullsplit_objective_generalization_v1
+feature_dimensions:
+  R0: 61
+  R1: 160
+  R2: 421
+  R3: 133
+  R4: 124
+feature_status:
+  R0: deployable_current_state
+  R1: privileged_exact_transition_diagnostic
+  R2: privileged_exact_transition_diagnostic
+  R3: privileged_exact_transition_diagnostic
+  R4: non_deployable_exact_continuation_oracle
+split:
+  scheme: sha256_layout_group_phase15_v1
+  salt: "phase15-layout-split-v1:"
+  train_layout_count: 60
+  train_row_count: 571
+  train_layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  validation_layout_count: 20
+  validation_row_count: 202
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  test_layout_count: 20
+  test_row_count: 149
+  test_layouts_sha256: 83EF25471DA3F9A12EF26E4E594EDE657755319F410A0EB90F5DBA177DED3403
+model:
+  objective: pairwise
+  seed: 15015
+  hidden: [32, 32]
+  max_epochs: 1200
+  patience: 100
+  learning_rate: 0.002
+  l2: 0.00001
+  weighting: equal_total_weight_per_train_layout
+  checkpoint: minimum_validation_layout_macro_regret_then_pairwise_loss
+  optimizer: existing_numpy_adam
+  target: nine_saved_normalized_teacher_forced_action_regrets
+  checkpoint_selection_split: validation
+r0_reproduction_gate:
+  best_epoch: 113
+  validation_layout_macro_regret: 0.3510361523030522
+  validation_best_action_set_agreement: 0.26732673267326734
+  tolerance: 0.0000000001
+screen_gate:
+  relative_to_R0_validation:
+    minimum_absolute_macro_regret_improvement: 0.1
+    minimum_absolute_catastrophic_fraction_improvement: 0.1
+  purpose: nominate_only_for_fresh_independent_confirmation
+  validation_comparison_is_confirmatory: false
+scope:
+  train_rows_used_for_fit: true
+  validation_rows_used_for_checkpoint_selection_and_development_screen: true
+  test_rows_used_for_fit_selection_or_metrics: false
+  rerun_or_recompute_test_metrics: false
+  refit_R0_reproduction: true
+  fit_R1_to_R4: true
+  simulator_or_planner_calls: false
+  new_transitions_or_episodes: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  reserve_access: false
+outputs:
+  run_dir: artifacts/runs/phase15_representation_screen_v1
+  report: reports/phase15_representation_screen_result.md

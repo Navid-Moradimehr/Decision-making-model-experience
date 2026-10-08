@@ -1,0 +1,80 @@
+phase: 14
+stage: phase14g_trace_attribution_development
+schema: phase14g_trace_run_config_v1
+status: authorized_trace_development_pending_lock
+updated: 2026-09-29
+
+authorization:
+  reference: user approval on 2026-09-29 to complete the Phase14G next steps
+  permitted_scope: one paired trace-attribution development run on the audited block only
+
+parent:
+  layout_audit: artifacts/runs/phase14g_layout_audit_v1.json
+  layout_audit_report: reports/phase14g_layout_hash_audit_result.md
+  phase14f_config: configs/phase14f_closed_loop.yaml
+  phase14f_lock: experiments/phase14f_closed_loop_v1.lock.json
+  phase14f_manifest: artifacts/runs/phase14f_closed_loop_v1/manifest.json
+  phase14f_metrics: artifacts/runs/phase14f_closed_loop_v1/metrics.json
+  phase14f_episodes: artifacts/runs/phase14f_closed_loop_v1/episodes.jsonl
+  phase14f_student: experiments/phase14f_student_cart_v1.json
+  phase14f_student_manifest: experiments/phase14f_student_cart_v1.manifest.json
+  training_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  training_manifest: artifacts/runs/phase14b_training_labels_resume_v1/manifest.json
+
+block:
+  seed_start: 193000
+  layout_count: 100
+  methods: [student, geometry_waypoint, random_shooting]
+  audit_schema: phase14g_layout_hash_audit_v1
+
+student:
+  action_count: 9
+  input_fields: [student_input_52, physics9_derived_only_from_student_input_52]
+  trace_cart_path_and_leaf: true
+  trace_train_leaf_support: true
+  trace_nearest_train_distance_normalized_61d_l2: true
+  trace_exact_shooting_action_at_same_state: true
+
+teacher:
+  forced_actions: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  continuation: exact_phase12_replanning_teacher
+  horizon: 8
+  sequences: 128
+  proposal_seed: (scenario_seed * 1000003 + absolute_elapsed_steps) mod 2^32
+  only_student_visited_states: true
+  omit_continuation_action_trace_from_saved_rows: true
+
+controllers:
+  geometry: {route: A_star_from_initial_state, resolution: 0.04, waypoint_tolerance: 0.03}
+  random_shooting: {horizon: 8, sequences: 128, proposal_seed: scenario_seed}
+
+integrity:
+  reserve_seed_start: 130000
+  reserve_layout_count: 200
+  consumed_seed_block_forbidden: {seed_start: 192000, count: 100}
+  paired_layout_bootstrap: {resamples: 10000, seed: 193011, confidence: 0.95}
+  no_model_fit_or_tuning: true
+
+scope:
+  trace_development: true
+  task_transitions: true
+  teacher_counterfactual_branches: true
+  student_fit_or_tuning: false
+  dagger: false
+  learned_world_model: false
+  reserve_access: false
+  final_reserve_access: false
+  further_runs_authorized: false
+
+resources:
+  wall_time_seconds: null
+  storage_bytes: null
+
+outputs:
+  lock: experiments/phase14g_trace_v1.lock.json
+  run_dir: artifacts/runs/phase14g_trace_v1
+  report: reports/phase14g_trace_attribution_result.md
+  episodes: episodes.jsonl
+  student_traces: student_decisions.jsonl
+  metrics: metrics.json
+  manifest: manifest.json

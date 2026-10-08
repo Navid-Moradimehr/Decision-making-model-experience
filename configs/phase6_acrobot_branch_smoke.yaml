@@ -1,0 +1,34 @@
+project:
+  name: consequence-lab
+  phase: 6A
+  protocol: gymnasium_acrobot_observation_branch_equivalence_smoke_v1
+  authorization: D051_acrobot_branch_equivalence_smoke_only
+  max_process_cpu_seconds: 30
+  max_generated_artifact_bytes: 1000000
+  baseline_screen_authorized: false
+  teacher_label_generation_authorized: false
+  student_training_authorized: false
+  validation_or_test_access_authorized: false
+
+environment:
+  package: gymnasium
+  version: 1.3.0
+  source_revision: 53bf3e9a884783eb72ad3fc8b15780914c97c3e1
+  wheel_sha256: 6b8c159a8540dcbcb221722d7efda24d78ebbcbc3bd2ea1c2611aa2a34471fc2
+  python_version: 3.11.15
+  numpy_version: 2.4.6
+  task: Acrobot-v1
+  observation: [cos_theta1, sin_theta1, cos_theta2, sin_theta2, theta1_dot, theta2_dot]
+  legal_actions: [negative_torque, zero_torque, positive_torque]
+  smoke_seed_start: 260200
+  smoke_seed_count: 5
+  random_roll_in_steps: 20
+  branch_action_count: 3
+  absolute_tolerance: 0.000001
+  hidden_state_use: branch_equivalence_assertion_only
+
+artifacts:
+  run_directory: artifacts/runs/phase6_acrobot_branch_smoke_v1
+  refuse_overwrite: true
+  save_action_traces: false
+  save_simulator_state: false

@@ -1,0 +1,42 @@
+phase: 14
+stage: phase14b_complete_locked_training_labels
+schema: phase14b_resume_config_v1
+status: frozen_before_continuation
+updated: 2026-09-29
+
+source:
+  base_config: configs/phase14b.yaml
+  base_lock: experiments/phase14b_training_labels_v1.lock.json
+  base_lock_sha256: E128021A0769544AC517FF24EAD481726EE7B59DBF53C6394FB5DA7E93F95890
+  partial_run_dir: artifacts/runs/phase14b_full_train_labels_v1
+  partial_records: artifacts/runs/phase14b_full_train_labels_v1/first_action_values.jsonl
+  partial_manifest: artifacts/runs/phase14b_full_train_labels_v1/manifest.json
+  partial_records_sha256: 62023FB81FDA7FBF8EF212D0EFEFB390001B44FDA7DFB4F8B6C8F2DD2CE17611
+  partial_manifest_sha256: 9AA7C2D0E1946B2D170805CED1FEFF9F225FF7096A0A6C2D8F4842BD27B94412
+  expected_partial_rows: 1937
+  total_training_rows: 2095
+  actions_per_state: 9
+  train_archive: artifacts/runs/phase12_train_teacher_v1
+  train_seed_range: {start: 140000, count: 120}
+
+authorization:
+  stage: complete_phase14b_training_labels_only
+  reference: user authorization on 2026-09-29 to continue and remove the prior time/storage limits
+  student_training: false
+  heldout_access: false
+  dagger: false
+  world_model: false
+  reserve_access: false
+
+outputs:
+  lock: experiments/phase14b_training_labels_resume_v1.lock.json
+  run_dir: artifacts/runs/phase14b_training_labels_resume_v1
+  remaining_records: artifacts/runs/phase14b_training_labels_resume_v1/remaining_action_values.jsonl
+  merged_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  manifest: artifacts/runs/phase14b_training_labels_resume_v1/manifest.json
+
+resources:
+  device: cpu
+  wall_time_cap: null
+  generated_storage_cap: null
+  overwrite_forbidden: true

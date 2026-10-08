@@ -1,0 +1,114 @@
+phase: 12c-B
+experiment: balanced_teacher_repeated_bank_realizability
+protocol_status: locked_for_execution
+updated: 2026-09-28
+authorization_status: authorized
+
+research_question: >-
+  At a fixed deployable state, can the balanced exact teacher's modal action
+  preference estimated from independent proposal banks achieve low regret on
+  held-out banks, without exposing bank seeds or outcomes to a student?
+
+source_data:
+  execution_lock: experiments/phase12b_training.lock.json
+  execution_lock_sha256: DBFDD787D07A1F901259C87185E0DCB54CB3B55066FF0977F71B54E45F8692CD
+  replay_audit: artifacts/runs/phase12cB_fitting_data_replay_audit.json
+  replay_audit_sha256: 1B49B45D1A0CDF0282585E70D855AE018236D1E6E0ECF2F4019018FC8D54DBF1
+  teacher_qualification_manifest: artifacts/runs/phase12cA_balanced_teacher_160000_160099_retry1/manifest.json
+  teacher_qualification_manifest_sha256: 53118598B61F5E376BDC85289AA6A937CAA99DEE47B4C2008764A140D6B62FE0
+  teacher_qualification_analysis: artifacts/runs/phase12cA_analysis_160000_160099_retry1.json
+  teacher_qualification_analysis_sha256: C0FDD0B936F848C95B5F6CC7931FF698F2A0EC92C0AFDBEBD54CF25756E57F28
+  eligible_splits:
+    - {name: phase12_train_teacher_v1, seed_start: 140000, layouts_available: 120, layouts_sampled: 60, status: fitting_only}
+    - {name: phase12_validation_teacher_v1, seed_start: 141000, layouts_available: 40, layouts_sampled: 20, status: fitting_only_former_validation}
+
+state_sampling:
+  selection_seed: 2026092813
+  states_per_layout: 2
+  total_layouts: 80
+  total_states: 160
+  layout_sampling: stable_sha256_order_without_replacement_within_source_split
+  progress_partition: first_half_early_second_half_late
+  speed_partition: within_each_progress_half_sort_by_true_speed_then_decision_index_split_lower_upper_halves
+  speed_progress_patterns:
+    - [low, high]
+    - [high, low]
+    - [low, low]
+    - [high, high]
+  pattern_assignment: stable_sha256_order_modulo_four
+  required_joint_stratum_counts: {early_low: 40, early_high: 40, late_low: 40, late_high: 40}
+  selection_within_stratum: nearest_quarter_or_three_quarter_episode_progress_then_median_speed_then_decision_index
+  sample_manifest: artifacts/runs/phase12cB_state_sample_manifest.json
+  sample_manifest_sha256: 7979D5DD86FBEA86BBF4BE6BF51D9F8FEED695234A09F03EB46C1D57F4B97FBA
+
+bank_sampling:
+  banks_per_state: 12
+  master_seed: 2026092817
+  proposal_seed_derivation: sha256(master_seed,sample_id,layout_hash,episode_seed,decision_index,bank_index)_first_64_bits
+  horizon: 8
+  suffixes_per_action: 14
+  candidate_set: 9_first_actions_times_14_common_unique_suffixes
+  common_suffixes_across_actions: true
+  independent_bank_seeds_per_state: true
+  train_bank_indices: [0, 1, 2, 3, 4, 5]
+  heldout_bank_indices: [6, 7, 8, 9, 10, 11]
+  half_swap_sensitivity: true
+  objective: exact_phase12_lexicographic_key_no_scalarization
+
+preference_estimator:
+  per_bank_optimal_ties: split_unit_mass_uniformly_across_tied_optimal_actions
+  empirical_preference: average_tie_split_mass_across_six_training_banks
+  modal_action: maximum_empirical_preference_then_minimum_mean_training_regret_then_lowest_action_id
+  normalized_action_regret: (tie_aware_average_rank - best_average_rank) / 8
+  heldout_primary: mean_normalized_regret_of_training_modal_action_on_six_heldout_banks
+  pairwise_flip: compare_nontied_action_orders_across_bank_pairs_within_fixed_state
+  pairwise_flip_margin_bins: {near_min_cross_bank_normalized_rank_gap: 0.125, medium_min_cross_bank_normalized_rank_gap: 0.375}
+  normalized_entropy: entropy_of_tie_split_preference_distribution_divided_by_log_9
+  objective_component_dispersion: per_action_and_per_lexicographic_component_range_across_banks
+
+statistics:
+  sampling_unit: layout_sha256
+  layout_aggregation: mean_of_two_state_metrics
+  bootstrap: {resamples: 10000, seed: 160013, confidence: 0.95, method: paired_cluster_percentile}
+  primary_gate:
+    layout_macro_heldout_modal_action_regret_maximum: 0.15
+    two_sided_95_percent_interval_upper_maximum: 0.20
+  half_swap_is_sensitivity_only: true
+
+compute_caps:
+  device: cpu
+  wall_seconds: 10800
+  generated_artifact_bytes: 20971520
+
+runner_contract:
+  authorization_lock: experiments/phase12cB_authorization_v2.lock.json
+  required_cli_confirmation: RUN_PHASE12C_B_ONLY
+  output_path: artifacts/runs/phase12cB_repeated_bank_160_states_v1
+  expected_bank_records: 1920
+  maximum_record_bytes: 32768
+  maximum_manifest_bytes: 65536
+  overwrite_forbidden: true
+
+scope:
+  reserve_accessed: false
+  student_training_authorized: false
+  dagger_authorized: false
+  development_or_test_layouts_read: false
+  phase12cA_outcomes_used_as_labels: false
+
+source_files:
+  - configs/phase12cB_locked.yaml
+  - reports/phase12c_teacher_realizability_proposal.md
+  - reports/phase12cA_balanced_teacher_qualification_160000_160099.md
+  - reports/phase12cB_realizability_protocol.md
+  - scripts/verify_phase12cB_replay.py
+  - scripts/prepare_phase12cB_samples.py
+  - scripts/freeze_phase12cB_lock.py
+  - scripts/run_phase12cB.py
+  - scripts/analyze_phase12cB.py
+  - src/consequence_lab/phase12c.py
+  - src/consequence_lab/phase12c_b.py
+  - src/consequence_lab/phase12_teacher.py
+  - src/consequence_lab/corridor_tasks.py
+  - src/consequence_lab/inertial_corridor.py
+  - tests/test_phase12c_b.py

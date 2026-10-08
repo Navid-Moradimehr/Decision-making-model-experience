@@ -1,0 +1,150 @@
+phase: 11
+experiment: corridor_baseline_headroom_screen
+protocol_status: draft_for_review
+execution_authorized: false
+performance_data_authorized: false
+training_authorized: false
+
+task:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  generator_sha256: 47CC5FF39643428EBA6D031C377402FF585B83FE5AE63E8217927308D08DAA1E
+  family: three_baffle_two_openings
+  max_steps: 160
+  public_state_only: true
+
+seed_partitions:
+  grouping_unit: layout_sha256
+  design_tuning:
+    start: 110000
+    count: 40
+    parameter_screen:
+      start: 110000
+      count: 8
+    frozen_configuration_selection:
+      start: 110008
+      count: 32
+  development_screen:
+    start: 120000
+    count: 100
+  unopened_reserve:
+    start: 130000
+    count: 200
+  generation_audit:
+    total_scenarios: 340
+    unique_geometry_hashes: 340
+    cross_partition_hash_collisions: 0
+  rule: Never use development or reserve outcomes to tune parameters. Reserve remains unopened until a separate written decision.
+
+primary_outcome:
+  name: safe_success
+  definition: Success terminal status before collision or timeout within the task horizon.
+  primary_comparison: exact_shooting_vs_best_cheap_baseline_selected_on_frozen_configuration_selection_seeds
+  practical_minimum_absolute_gain: 0.10
+
+secondary_outcomes:
+  - collision_rate
+  - timeout_rate
+  - steps_to_success
+  - control_effort
+  - wall_seconds_per_decision
+  - wall_seconds_per_episode
+  - shooting_horizon_success_availability
+  - search_expansion_limit_rate
+
+metric_definitions:
+  shooting_horizon_success_availability: At a decision state, fraction of random-shooting queries whose sampled action-sequence bank contains at least one sequence reaching safe success within that query's truncated planning horizon. This is not an oracle measure of task solvability or global candidate coverage.
+  safe_success_rate: Fraction of all paired layout episodes terminating in safe success within the task horizon; collision, timeout, and planner failure remain in the denominator and are reported separately.
+
+development_gate:
+  pass_headroom:
+    point_gain_at_least: 0.10
+    paired_cluster_bootstrap_95_percent_lower_bound_gain_above: 0.0
+    collision_rate_difference_95_percent_upper_bound_at_most: 0.02
+  pass_amortization_motivation:
+    median_planner_to_strongest_cheap_wall_latency_per_decision_ratio_at_least: 10.0
+  bootstrap:
+    resamples: 10000
+    seed: 110011
+    unit: layout_sha256
+    paired_methods: true
+  interpretation: A headroom pass without the compute-ratio pass is not sufficient evidence for amortized-policy work.
+
+baseline_tuning_ranges:
+  reactive:
+    obstacle_influence: [0.05, 0.10, 0.15]
+    clearance_weight: [0.005, 0.01, 0.02]
+  geometry_astar_waypoint:
+    resolution: [0.01, 0.02, 0.04]
+    waypoint_tolerance: [0.01, 0.015, 0.03]
+  quantized_kinodynamic:
+    position_resolution: [0.02, 0.04]
+    velocity_resolution: [0.02, 0.04]
+    max_expansions: [500, 1000]
+  exact_dynamics_random_shooting:
+    horizon: [8, 12, 16]
+    num_sequences: [128, 256]
+    proposal: constant_action_plus_seeded_uniform
+    objective: prototype_lexicographic_success_then_progress_then_effort
+
+kinodynamic_resolution_diagnostic:
+  purpose: Check whether the quantized-search baseline's closed-loop behavior is sensitive to state-bin resolution; descriptive only, not a tuning or selection rule.
+  seed_partition: parameter_screen
+  matched_max_expansions: 1000
+  resolutions:
+    - {position_resolution: 0.04, velocity_resolution: 0.04}
+    - {position_resolution: 0.02, velocity_resolution: 0.02}
+    - {position_resolution: 0.01, velocity_resolution: 0.01}
+  report_per_layout:
+    - terminal_outcome_at_each_resolution
+    - expansion_limit_count_at_each_resolution
+    - total_expanded_nodes
+    - steps_if_safe_success
+  stable_on_screen_if:
+    - No expansion-limit event occurs at any resolution.
+    - All three resolutions have the same terminal outcome on every parameter-screen layout.
+    - When all three succeed on a layout, their episode step counts differ by at most one step.
+  interpretation:
+    stable_failures: Stable non-success outcomes are not evidence of useful planning quality or convergence to an optimum.
+    any_disagreement: Report as resolution-sensitive; do not use this diagnostic to change the configuration selected by the declared parameter-screen rule.
+    any_expansion_limit: Mark the check inconclusive for affected layouts; retain and report the capped baseline outcomes without claiming resolution stability.
+
+selection_rules:
+  parameter_screen: Compare the declared configurations on parameter_screen seeds only; select and freeze one configuration per method without accessing frozen_configuration_selection outcomes.
+  frozen_configuration_selection: Run the frozen method configurations on this separate design subset; choose the strongest cheap baseline using the declared tie-breaks. Do not retune configurations here.
+  cheap_baseline: Highest design-set safe-success rate; ties broken by lower collision rate, then lower median steps among successes, then lower wall latency/decision.
+  within_method_configuration: Highest design-set safe-success rate; ties broken by lower collision rate, then lower wall latency/decision; freeze one configuration per method before development outcomes.
+  exact_shooting_configuration: Same rule, with candidate availability reported separately. Do not choose a horizon from development results.
+  failure_or_timeout: Record explicitly; never drop the episode from the denominator.
+
+compute_caps:
+  device: cpu
+  total_wall_seconds: 10800
+  generated_artifact_bytes: 20971520
+  on_cap: Stop at the first episode boundary after a cap is reached, preserve partial diagnostics as aborted, and do not extend the same seed block without a new decision. A running episode may finish after the wall cap; report actual elapsed time and this bounded overshoot explicitly.
+
+artifact_policy:
+  save_seed_and_geometry_hash_per_episode: true
+  save_terminal_status_and_summary_metrics: true
+  save_full_candidate_trajectories: false
+  save_teacher_labels_or_models: false
+
+runner_contract:
+  first_executable_stage: parameter_screen
+  execution_config_status: locked_for_execution
+  locked_config_path: configs/phase11_corridor_parameter_screen_locked.yaml
+  authorization_lock_path: experiments/phase11_parameter_screen_authorization.lock.json
+  authorization_lock_format: phase11_execution_lock_v1
+  required_cli_confirmation: RUN_PHASE11_PARAMETER_SCREEN
+  output_root: artifacts/runs
+  abort_check_boundary: between_episodes
+  maximum_episode_record_bytes: 65536
+  maximum_manifest_bytes: 65536
+  stage_isolation: A run may execute only the explicitly authorized stage and must exit after it; later stages require a new config/authorization lock.
+
+limitations:
+  - One layout family only; no cross-family generalization claim.
+  - Tuning ranges and gates are proposed, not yet frozen or executed.
+  - Current shooting objective and proposal are reference choices, not established best practice.
+  - Mechanics, episode methods, aggregate pairing, and bootstrap behavior have only been checked on small unit fixtures; generated-layout performance and timing distributions remain unmeasured.
+  - The read-only review verifier grants no authority. A separate parameter-screen runner enforces only the frozen 8-seed scope and caps when supplied a matching authorized lock and exact CLI confirmation; it does not support or authorize later stages.
+  - Amortization latency gate uses wall latency; process-CPU timing is not trusted at per-episode scale on the current Windows host.

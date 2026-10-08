@@ -1,0 +1,64 @@
+phase: 14
+stage: phase14g_trace_attribution_preparation
+schema: phase14g_trace_attribution_config_v1
+status: hash_audit_only_run_not_authorized
+updated: 2026-09-29
+
+parent:
+  phase14f_config: configs/phase14f_closed_loop.yaml
+  phase14f_lock: experiments/phase14f_closed_loop_v1.lock.json
+  phase14f_manifest: artifacts/runs/phase14f_closed_loop_v1/manifest.json
+  phase14f_metrics: artifacts/runs/phase14f_closed_loop_v1/metrics.json
+  phase14f_episodes: artifacts/runs/phase14f_closed_loop_v1/episodes.jsonl
+  phase14f_report: reports/phase14f_closed_loop_v1_result.md
+  phase14f_student: experiments/phase14f_student_cart_v1.json
+  phase14f_student_manifest: experiments/phase14f_student_cart_v1.manifest.json
+  phase14b_training_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  phase13_protocol: configs/phase13.yaml
+
+block:
+  seed_start: 193000
+  layout_count: 100
+  purpose: phase14g_trace_attribution_development_only
+  paired_methods: [student, geometry_waypoint, random_shooting]
+  seed_range_must_be_outside_reserve: {seed_start: 130000, count: 200}
+
+student:
+  model_artifact_sha256: 982DC16CCE6DD1E7662B4EBE526EAAE5378029424E6B4F3AFB5A7EC01378E902
+  input_fields: [student_input_52, physics9_derived_only_from_student_input_52]
+  log_categorical_cart_path: true
+  log_predicted_normalized_regret9: true
+  train_support_index: phase14b_training_records_only
+  nearest_training_distance: normalized_61d_l2
+
+teacher:
+  type: force_each_legal_primitive_action_once_then_exact_phase12_replanning_continuation
+  action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  horizon: 8
+  sequences: 128
+  proposal_seed: (scenario_seed * 1000003 + absolute_elapsed_steps) mod 2^32
+  collect_all_action_values_only_on_student_visited_states: true
+
+controllers:
+  geometry: {route: A_star_from_initial_state, resolution: 0.04, waypoint_tolerance: 0.03}
+  exact_shooting: {horizon: 8, sequences: 128, proposal_seed: scenario_seed}
+
+scope:
+  hash_audit_only: true
+  trace_runner_implemented: false
+  simulator_transitions: false
+  teacher_branches: false
+  model_fit_or_tuning: false
+  dagger: false
+  learned_world_model: false
+  reserve_access: false
+  run_authorized: false
+
+resources:
+  wall_time_seconds: null
+  storage_bytes: null
+
+outputs:
+  layout_audit: artifacts/runs/phase14g_layout_audit_v1.json
+  run_dir: artifacts/runs/phase14g_trace_v1
+  report: reports/phase14g_trace_attribution_result.md

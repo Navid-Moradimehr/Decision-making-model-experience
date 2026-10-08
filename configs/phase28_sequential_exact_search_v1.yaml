@@ -1,0 +1,114 @@
+schema: phase28-sequential-exact-search-v1
+protocol: reports/phase28_sequential_exact_search_protocol.md
+amendment: reports/phase28_prelock_cutoff_salt_correction.md
+authorization:
+  scope: phase28-fresh-development-evaluation-only
+  user_instruction: "Start Phase 28 — Sequential Exact Search and Value-of-Compute"
+  date: 2026-10-06
+parent:
+  phase27b_config: configs/phase27b_adaptive_exact_search_v2.yaml
+  phase27b_source: src/consequence_lab/phase27b_adaptive_exact_search.py
+  phase27b_lock: experiments/phase27b_adaptive_exact_search_v2.lock.json
+  phase27b_lock_sha256: DA89C46DEF43A7342F2EA510CECF9BFC9B025F22997EB9364715DB7630980FA3
+  phase27b_records: artifacts/runs/phase27b_adaptive_exact_search_v2/episodes.jsonl.gz
+  phase27b_records_sha256: 5E8DEA503887E178EC927487AF9009844DAAA915EA1928FD2F9ACA92CC78B493
+  phase27b_result: artifacts/runs/phase27b_adaptive_exact_search_v2/result.json
+  phase27b_result_sha256: 429EA0480A7B115AB18D67DF705D3724A4726070E96C967FBA0BFB612F15EF59
+  phase27b_run_manifest: artifacts/runs/phase27b_adaptive_exact_search_v2/run_manifest.json
+  phase27b_run_manifest_sha256: 56DB92A462A0CF717C0FE0A058160ECAB54744A495DE90E34C7D847CF1060FD4
+  phase27b_result_manifest: artifacts/runs/phase27b_adaptive_exact_search_v2/result_manifest.json
+  phase27b_result_manifest_sha256: 1062A0B5FAC4D961616ECE35FD69BF5CB37657BEA140F3E7A1CA8711E7F574A9
+  phase27a_model: artifacts/runs/phase27a_search_allocation_feasibility_v1/allocation_model.json
+  phase27a_model_sha256: 50E9F1D69353ED23425D70A84D7D686A587811DFACB95B700B75F4E6956ED469
+  phase27a_result: artifacts/runs/phase27a_search_allocation_feasibility_v1/result.json
+  phase27a_result_sha256: 7B4ED5A081543D603CB94E82806A3226DEDBE88838BCA4A30F0D757C963191BD
+  phase27a_manifest: artifacts/runs/phase27a_search_allocation_feasibility_v1/manifest.json
+  phase27a_manifest_sha256: 369E5D4AC283124F29729ABEAB1A96BE42776624F0629DE52C2B32AB5112BDE9
+  phase27a_lock: experiments/phase27a_search_allocation_feasibility_v2.lock.json
+  phase27a_lock_sha256: E63C50B729C5A6643AB2E5BF85613EBE81CC3D5BC1A60093706C8E08A4EE1F75
+block:
+  seed_start: 211000
+  layout_count: 500
+  replicas: [0, 1, 2]
+  prior_or_sealed_ranges_half_open:
+    reserve: [130000, 130200]
+    d168: [197000, 197100]
+    phase17: [201000, 201500]
+    phase18: [202000, 202500]
+    phase19: [203000, 203500]
+    phase20: [205000, 205500]
+    phase21: [206000, 206500]
+    phase22: [207000, 207500]
+    phase23: [208000, 208500]
+    phase24: [209000, 209500]
+    phase25: [209500, 210000]
+    phase27b: [210000, 210500]
+planning:
+  horizon: 8
+  attempt_cap: 1280000
+  base_budget: 24
+  matched_average_budget: 26
+  full_budget: 32
+  exact_rollout_scoring: true
+  exact_final_selection: true
+  tie_break: lexicographic_sequence
+  query_seed: phase17_query_seed
+  bank_generator: phase20_shift_previous_winner_nested_by_sequence_identity
+allocation:
+  random_rate: 0.25
+  phase27_learned_probability_threshold: 0.19163123489678963
+  phase27_learned_threshold_source: phase27a_frozen_oof_threshold
+  native_rule: extend_only_if_no_b24_safe_success_and_small_same_category_gap
+  native_gap_cutoff: 0.04226447961138785
+  native_tie_hash_cutoff: 2500101193061606110
+  native_nominal_activation_rate: 0.25
+  native_cutoff_source: phase27b_fixed_b32_decision_order_statistic
+  native_tie_hash_salt: planner-native-tie
+  random_hash_salt: phase28-random-trigger
+arms:
+  - fixed_b24
+  - fixed_b26
+  - fixed_b32
+  - random_adaptive_b24_plus_8
+  - phase27_learned_adaptive_b24_plus_8
+  - planner_native_adaptive_b24_plus_8
+analysis:
+  inferential_unit: layout_sha256
+  within_layout_replica_aggregation: arithmetic_mean
+  schedule_seed: 28001
+  bootstrap_seed: 28002
+  bootstrap_draws: 10000
+  paired_one_sided_confidence_vs_b32: 0.9875
+  attribution_one_sided_confidence: 0.95
+  adverse_layout_one_sided_confidence: 0.9916666666666667
+  success_noninferiority_margin: -0.015
+  collision_noninferiority_margin: 0.015
+  transition_ratio_mean_at_most_vs_b32: 0.90
+  transition_ratio_95_upper_at_most_vs_b32: 0.95
+  median_latency_ratio_at_most_vs_b32: 0.90
+gates:
+  absolute_safe_success_strictly_above: 0.90
+  collision_at_most: 0.05
+  timeout_exactly: 0
+  per_replica_success_at_least: 0.85
+  per_replica_collision_at_most: 0.10
+  success_difference_lower_vs_b32: -0.015
+  collision_difference_upper_vs_b32: 0.015
+  adverse_layout_event_upper_at_most: 0.05
+execution:
+  authorized: true
+  serial: true
+  append_only: true
+  interim_scoring: false
+  resume: false
+  training: false
+  reserve_test_d168_access: false
+outputs:
+  run_dir: artifacts/runs/phase28_sequential_exact_search_v1
+  layout_audit: artifacts/runs/phase28_sequential_exact_search_v1/layout_audit.json
+  execution_order: artifacts/runs/phase28_sequential_exact_search_v1/execution_order.json
+  execution_lock: experiments/phase28_sequential_exact_search_v1.lock.json
+  records: artifacts/runs/phase28_sequential_exact_search_v1/episodes.jsonl.gz
+  run_manifest: artifacts/runs/phase28_sequential_exact_search_v1/run_manifest.json
+  result: artifacts/runs/phase28_sequential_exact_search_v1/result.json
+  result_manifest: artifacts/runs/phase28_sequential_exact_search_v1/result_manifest.json

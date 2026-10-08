@@ -1,0 +1,97 @@
+phase: 11
+experiment: corridor_baseline_frozen_configuration_selection
+stage: frozen_configuration_selection
+protocol_status: locked_for_execution
+execution_authorized: true
+performance_data_authorized: true
+training_authorized: false
+
+task:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  generator_sha256: 47CC5FF39643428EBA6D031C377402FF585B83FE5AE63E8217927308D08DAA1E
+  family: three_baffle_two_openings
+  max_steps: 160
+  public_state_only: true
+
+seed_block:
+  name: frozen_configuration_selection
+  start: 110008
+  count: 32
+  grouping_unit: layout_sha256
+  rule: Evaluate one frozen configuration per method; do not tune parameters on these outcomes. Select the strongest cheap baseline by the declared rule. These are design/selection outcomes, not the 100-layout development screen.
+
+provenance:
+  parameter_screen_report: reports/phase11_parameter_screen_110000_110007.md
+  parameter_screen_report_sha256: A452A87C04824DF5676F8E3E658C91A5779AEF7C9F60110698723AD4C5230073
+  parameter_screen_episodes: artifacts/runs/phase11_parameter_screen_110000_110007_20260927/episodes.jsonl
+  parameter_screen_episodes_sha256: B7ED5943401DB8645A3E8B99D409D2CE2E24A5E1E1C540C62D28353329345F5D
+  parameter_screen_manifest: artifacts/runs/phase11_parameter_screen_110000_110007_20260927/manifest.json
+  parameter_screen_manifest_sha256: 7928AF8B2DD155B80E40F4C12C2BBC3CFA4CF56AEE77FA1F68602661AA67B9E4
+
+frozen_configurations:
+  - method: reactive
+    role: cheap_baseline
+    configuration_id: 8f96182382d58f00
+    parameters: {obstacle_influence: 0.15, clearance_weight: 0.02}
+  - method: geometry_waypoint
+    role: cheap_baseline
+    configuration_id: a46c49f74e03dcb0
+    parameters: {resolution: 0.04, waypoint_tolerance: 0.03}
+  - method: kinodynamic
+    role: cheap_baseline
+    configuration_id: 3ee52b3da0d53f28
+    parameters: {position_resolution: 0.04, velocity_resolution: 0.04, max_expansions: 1000}
+  - method: random_shooting
+    role: planner
+    configuration_id: e1b1dbae01ab5bdd
+    parameters: {horizon: 8, num_sequences: 128}
+
+primary_outcome:
+  name: safe_success
+  purpose: Select and freeze the strongest cheap baseline before the independent development screen.
+  report_exact_shooting_against_each_cheap_baseline: true
+  strongest_cheap_baseline_rule: highest_safe_success_rate_then_lower_collision_rate_then_lower_median_steps_among_successes_then_lower_median_wall_latency_per_decision
+  paired_layout_bootstrap: descriptive_only_due_to_baseline_selection_on_this_block
+  do_not_claim_confirmatory_development_result: true
+
+secondary_outcomes:
+  - collision_rate
+  - timeout_rate
+  - planner_failure_rate
+  - steps_to_success
+  - control_effort
+  - median_wall_seconds_per_decision
+  - median_wall_seconds_per_episode
+  - shooting_horizon_success_availability
+  - kinodynamic_expansion_limit_rate
+
+compute_caps:
+  device: cpu
+  total_wall_seconds: 10800
+  generated_artifact_bytes: 20971520
+  on_cap: Stop at the first episode boundary after a cap is reached; preserve partial results as aborted and do not extend this seed block without a new decision. One in-flight episode may finish after the wall cap.
+
+artifact_policy:
+  save_seed_and_geometry_hash_per_episode: true
+  save_terminal_status_and_summary_metrics: true
+  save_full_candidate_trajectories: false
+  save_teacher_labels_or_models: false
+
+runner_contract:
+  first_executable_stage: frozen_configuration_selection
+  locked_config_path: configs/phase11_frozen_selection_locked.yaml
+  authorization_lock_path: experiments/phase11_frozen_selection_authorization.lock.json
+  authorization_lock_format: phase11_execution_lock_v1
+  required_cli_confirmation: RUN_PHASE11_FROZEN_SELECTION
+  output_root: artifacts/runs
+  abort_check_boundary: between_episodes
+  maximum_episode_record_bytes: 65536
+  maximum_manifest_bytes: 65536
+  stage_isolation: This runner executes only the 32-layout frozen-configuration-selection block. It cannot run development, reserve, or training stages.
+
+limitations:
+  - This is still one generated topology family; no cross-family claim is supported.
+  - Parameter choices were selected on the prior eight-layout screen and are fixed here.
+  - The kinodynamic setting had four expansion-limit terminations in the tuning screen; retain/report failures rather than tuning this method on these 32 layouts.
+  - Comparing methods on the selection block is for selecting the cheap comparator, not final held-out evidence of planner headroom.
+  - This draft and its template authorize no task execution.

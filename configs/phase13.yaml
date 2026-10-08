@@ -1,0 +1,149 @@
+phase: 13
+status: protocol-frozen-before-new-outcomes
+authorization: user-requested-ordered-execution-with-preregistered-gates
+
+question: >-
+  Does exact-shooting headroom survive a credible dynamics-aware cheap
+  controller, and can the frozen receding-horizon teacher's counterfactual
+  first-action consequences be learned by simple deployable functions?
+
+task:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  family: three_baffle_two_openings
+  dynamics: exact deterministic CorridorTaskSpec/corridor_step
+  max_steps: 160
+  public_state_features: 52
+  action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  action_id_0: coast
+
+phase13A:
+  outputs:
+    development: artifacts/runs/phase13a_development_v1
+    independent: artifacts/runs/phase13a_independent_v1
+  provenance:
+    layout_audit: artifacts/runs/phase13_layout_hash_audit_v2.json
+    authorization_lock: experiments/phase13a_authorization_v2.lock.json
+  development:
+    seed_start: 143000
+    count: 40
+    purpose: phase_space_design_and_tuning_only
+    prior_status: hash_audited_only; no outcomes
+  independent_comparison:
+    seed_start: 190000
+    count: 100
+    purpose: frozen_headroom_comparison
+  methods:
+    exact_random_shooting: {horizon: 8, num_sequences: 128}
+    geometry_waypoint: {resolution: 0.04, waypoint_tolerance: 0.03}
+    phase_space:
+      route_resolution: 0.04
+      brake_safety_margin_candidates: [0.02, 0.04, 0.06]
+      corner_angle_threshold_degrees: 30
+      action_safety_check: exact_one_step_swept_collision
+  selection:
+    primary: safe_success_rate
+    tie_breaks: [lower_collision_rate, lower_median_steps_on_success, lower_median_decision_latency, lower_brake_safety_margin]
+    no_parameter_tuning_on_independent_comparison: true
+  audit:
+    layout_identity: geometry_sha256
+    audit_blocks_before_outcomes: [phase11_all, phase12_all, phase12b_all, phase12c_all, phase13A_development, phase13A_independent]
+    compare_development_to_independent: true
+    reserve_may_be_generated_for_hash_only: true
+    reserve_outcomes_may_be_read: false
+  development_selection_rule:
+    primary: maximize_safe_success_rate
+    tie_breaks: [minimize_collision_rate, minimize_median_success_steps, minimize_median_decision_latency]
+    ties_after_all_metrics: choose_smallest_brake_safety_margin
+  headroom_gate:
+    planner_minus_phase_space_success_point_gain_at_least: 0.10
+    paired_layout_bootstrap_95_lower_bound_above: 0.0
+    planner_minus_phase_space_collision_rate_95_upper_bound_at_most: 0.02
+    planner_to_phase_space_median_decision_latency_ratio_at_least: 10.0
+    paired_bootstrap: {resamples: 10000, seed: 190011, confidence: 0.95, unit: layout_sha256}
+  resource_caps: {cpu_wall_seconds: 10800, generated_bytes: 20971520}
+
+phase13B:
+  start_only_if_phase13A_passes: true
+  source_training_states: {seed_start: 140000, count: 120, use: train_only}
+  initial_label_budget:
+    nested_states: [1, 8, 32]
+    one_layout: true
+    initial_full_training_layouts: 16
+  forced_action_values:
+    legal_actions: all_nine
+    intervention: force_one_action_then_resume_frozen_phase11_exact_shooting
+    planner: {horizon: 8, num_sequences: 128}
+    proposal_seed_schedule: "(episode_seed * 1000003 + state.elapsed_steps) mod 2^32"
+    common_random_numbers_across_root_actions: true
+    continuation_until: success_collision_or_timeout
+    target: structured_terminal_objective_tuple_no_scalarization
+    terminal_tuple_order: [success_before_timeout_before_collision, fewer_steps_if_success, smaller_terminal_goal_distance_if_failure, lower_control_effort]
+    rank_ties: exact_terminal_tuple_equality; average_rank_for_ties
+    normalized_regret: (average_rank - best_average_rank) / (number_of_actions - 1)
+    store: [terminal_tuple, per_state_action_rank, normalized_regret, forced_transition, continuation_length, terminal_state, action_frequency_summary]
+    raw_runtime_inputs: [public_state_52, visible_task_geometry, fixed_action_semantics]
+    forbidden_runtime_inputs: [seed, teacher_cost, action_rank, future_state, privileged_snapshot]
+  repeatability:
+    exact_replay_of_first_8_states_all_actions: true
+    equality: exact_terminal_status_steps_effort_and_objective_tuple
+  variation_gate:
+    minimum_states_with_nonzero_action_regret_fraction: 0.75
+    minimum_distinct_optimal_action_ids_in_32_states: 3
+    gate_is_pretraining_only: true
+  stage_resource_caps: {cpu_wall_seconds: 10800, generated_bytes: 20971520}
+
+phase13C:
+  synthetic_training_integrity_test_required: true
+  memorization_ladder: [1_state, 8_states, 32_states, one_layout, full_16_layout_training_set]
+  first_target: within_state_normalized_regret
+  require_train_decision_regret_at_most: 0.01
+  require_all_strict_terminal_tuple_orders_fit: true
+  ties: exact_terminal_tuple_equality
+  synthetic_rule: velocity_threshold_selects_brake_or_accelerate
+  stage_resource_caps: {cpu_wall_seconds: 10800, generated_bytes: 20971520}
+
+phase13D:
+  learners: [nearest_neighbor, shallow_decision_tree, random_forest, tiny_mlp]
+  tiny_mlp: {input: public_state_52, hidden: [64, 64], output: nine_action_regrets, parameters_max: 10000}
+  targets_to_compare_after_memorization: [structured_Q_components, normalized_regret, margin_weighted_pairwise_rank]
+  cpu_only: true
+  stage_resource_caps: {cpu_wall_seconds: 10800, generated_bytes: 20971520}
+
+phase13E:
+  model_selection: {seed_start: 191000, count: 40, states_per_layout: 2, teacher_trajectory_fractions: [0.33, 0.67]}
+  offline_gate: {seed_start: 191040, count: 40, states_per_layout: 2, teacher_trajectory_fractions: [0.33, 0.67]}
+  layout_unit: layout_sha256
+  reserve_access: false
+  offline_advance_gate:
+    mean_normalized_regret_improvement_over_phase_space_at_least: 0.05
+    paired_layout_bootstrap_95_lower_bound_above: 0.0
+    bootstrap_resamples: 10000
+    bootstrap_seed: 191011
+    compare_only_on_shared_teacher_states: true
+  student_advance_gate:
+    improve_phase_space_success_on_development_by_at_least: 0.05
+    paired_layout_bootstrap_95_lower_bound_above: 0.0
+    collision_rate_difference_95_upper_bound_at_most: 0.02
+  stage_resource_caps: {cpu_wall_seconds: 10800, generated_bytes: 20971520}
+
+phase13F:
+  development: {seed_start: 192000, count: 100}
+  methods: [geometry_waypoint, phase_space, selected_student, exact_random_shooting]
+  paired_layout_bootstrap: {resamples: 10000, seed: 193011, confidence: 0.95}
+  report: [safe_success, collision, timeout, steps, control_effort, latency, teacher_regret, disagreement]
+  dagger: conditional_on_offline_and_closed_loop_competence_and_distribution_shift
+  stage_resource_caps: {cpu_wall_seconds: 10800, generated_bytes: 20971520}
+
+reserve:
+  seeds: {start: 130000, count: 200}
+  status: sealed_not_authorized
+
+integrity:
+  hash_audit_before_each_new_layout_outcome: true
+  audit_all_prior_phase11_phase12_phase12b_phase12c_layout_hashes: true
+  no_seed_or_layout_hash_reuse: true
+  generated_artifact_cap_bytes_per_stage: 20971520
+  cpu_wall_cap_seconds_per_stage: 10800
+  overwrite_forbidden: true
+  require_clean_git_and_source_data_lock_before_outcome_generation: true
+  no_world_model_or_jepa_in_phase13: true

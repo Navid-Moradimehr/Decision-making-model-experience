@@ -1,0 +1,85 @@
+schema: phase15_d155_compact_consequence_prediction
+status: frozen_prediction_screen_for_stage_a_selected_subset
+protocol: reports/phase15_d155_stage_c_protocol.md
+parents:
+  stage_a_lock: experiments/phase15_d155_v2.lock.json
+  stage_a_result: artifacts/runs/phase15_d155_stage_a_v2/result.json
+  stage_a_manifest: artifacts/runs/phase15_d155_stage_a_v2/manifest.json
+  stage_a_report_correction: reports/phase15_d155_stage_a_v2_metric_correction.md
+  selected_decision_head: artifacts/runs/phase15_d155_stage_a_v2/F_outcome_steps.npz
+  d154_result: artifacts/runs/phase15_d154_finalize_v3/result.json
+  d150_r0_checkpoint: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d150_r4_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d153_corpus: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_result: artifacts/runs/phase15_d153_coverage_scaling_v3/result.json
+split:
+  training_rows: 1936
+  training_layouts: 200
+  validation_rows: 202
+  validation_layouts: 20
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  validation_reused: true
+  test_or_reserve_access: false
+target:
+  selected_subset: F_outcome_steps
+  input: [R0_61, primitive_action_onehot_9]
+  input_dimension: 70
+  output_per_action: [P_success, P_timeout, P_collision, normalized_terminal_steps]
+  r4_outcome_column_order: [success, active_zero, timeout, collision]
+  predictor_outcome_class_order: [success, timeout, collision]
+  active_class_present: false
+  steps_clipped_to: [0.0, 1.0]
+predictors:
+  layout_balanced_weights: true
+  train_only_standardization: true
+  constant:
+    method: per_action_weighted_class_frequencies_and_weighted_steps_mean
+  bounded_cart:
+    max_depth: 4
+    min_samples_leaf: 64
+    candidate_quantiles: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    classification_impurity: gini
+    regression_impurity: squared_error
+  mlp:
+    hidden: [32, 32]
+    seed: 15551
+    optimizer: full_batch_adam
+    learning_rate: 0.002
+    l2: 0.00001
+    max_epochs: 600
+    patience: 60
+    checkpoint: minimum_validation_weighted_outcome_cross_entropy_plus_normalized_steps_mse
+    outcome_loss_weight: 1.0
+    steps_loss_weight: 1.0
+decision_gate:
+  minimum_oracle_regret_gap_recovered: 0.25
+  minimum_catastrophic_fraction_absolute_improvement_vs_frozen_r0: 0.10
+  selection_rule: any_fixed_predictor_meets_both_thresholds
+  execute_downstream_branch_automatically: false
+metrics:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  high_margin_pair_gap_threshold: 0.25
+  safe_action_regret_at_most: 0.125
+  catastrophic_action_regret_at_least: 0.5
+  stage_a_reference_parity_tolerance: 1.0e-10
+scope:
+  train_and_reused_validation_only: true
+  selected_subset_only: true
+  simulator_calls: false
+  planner_calls: false
+  new_transitions: false
+  new_episodes: false
+  student_controlled_simulation: false
+  dagger: false
+  closed_loop: false
+  world_model: false
+  jepa: false
+  representation_distillation: false
+  test_rows_scored: false
+  reserve_access: false
+outputs:
+  lock: experiments/phase15_d155_stage_c.lock.json
+  run_dir: artifacts/runs/phase15_d155_stage_c_v1
+  report: reports/phase15_d155_stage_c_result.md

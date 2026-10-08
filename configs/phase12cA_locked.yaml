@@ -1,0 +1,95 @@
+phase: 12c-A
+experiment: balanced_teacher_qualification
+protocol_status: locked_for_execution
+execution_authorized: true
+performance_data_authorized: true
+training_authorized: false
+
+task:
+  generator: consequence_lab.corridor_tasks.generate_staggered_corridor
+  generator_sha256: 47CC5FF39643428EBA6D031C377402FF585B83FE5AE63E8217927308D08DAA1E
+  family: three_baffle_two_openings
+  max_episode_steps: 160
+  exact_objective: phase11_lexicographic_success_progress_effort
+
+seed_block:
+  name: phase12c_a_teacher_qualification
+  start: 160000
+  count: 100
+  unit: layout_sha256
+  rule: Fresh paired development only; never tune gates or methods using outcomes.
+
+layout_audit:
+  path: artifacts/runs/phase12cA_layout_audit_v2_160000_160099.json
+  sha256: 713051DB715438B27A9AA8CC72EEE9A21D8AEF2DF22AD29A4D2034C3A6CE22ED
+  reserve_generated_or_accessed: false
+
+methods:
+  - method: geometry_waypoint
+    role: frozen_strong_cheap_baseline
+    parameters: {resolution: 0.04, waypoint_tolerance: 0.03}
+  - method: random_shooting
+    role: frozen_original_exact_planner_reference
+    parameters: {horizon: 8, num_sequences: 128}
+  - method: balanced_shooting
+    role: proposed_balanced_exact_planner
+    parameters: {horizon: 8, suffixes_per_action: 14}
+proposal:
+  seed: (scenario_seed * 1000003 + elapsed_steps) mod 2^32
+  tie_break:
+    original_random_shooting: stable_first_minimum_in_frozen_proposal_order
+    balanced_shooting: sha256_of_action_sequence_bytes
+
+primary_gates:
+  balanced_successes_minimum: 90
+  balanced_minus_geometry_success_difference_minimum: 0.20
+  balanced_minus_geometry_success_bootstrap_lower_bound_strictly_above: 0.10
+  balanced_minus_original_success_bootstrap_lower_bound_strictly_above: -0.10
+  balanced_collision_count_maximum: 10
+  balanced_minus_original_collision_bootstrap_upper_bound_at_most: 0.10
+  all_hash_and_candidate_integrity_checks_must_pass: true
+  bootstrap: {resamples: 10000, seed: 160011, unit: layout_sha256, paired: true}
+
+secondary_outcomes:
+  - timeout_rate
+  - steps_to_success
+  - control_effort
+  - decision_wall_latency
+  - mean_candidates_evaluated_per_decision
+  - success_candidate_availability
+  - objective_tie_candidates_per_query
+
+compute_caps:
+  device: cpu
+  total_wall_seconds: 10800
+  generated_artifact_bytes: 20971520
+
+runner_contract:
+  locked_config_path: configs/phase12cA_locked.yaml
+  authorization_lock_path: experiments/phase12cA_authorization_v4.lock.json
+  required_cli_confirmation: RUN_PHASE12C_A_ONLY
+  output_path: artifacts/runs/phase12cA_balanced_teacher_160000_160099_retry1
+  maximum_episode_record_bytes: 65536
+  maximum_manifest_bytes: 65536
+  methods_per_layout: 3
+
+source_files:
+  - configs/phase12cA_locked.yaml
+  - reports/phase12c_teacher_realizability_proposal.md
+  - reports/phase11_development_120000_120099.md
+  - reports/phase11_frozen_configuration_selection_110008_110039.md
+  - src/consequence_lab/phase12c.py
+  - src/consequence_lab/corridor_baselines.py
+  - src/consequence_lab/corridor_evaluation.py
+  - src/consequence_lab/corridor_tasks.py
+  - src/consequence_lab/inertial_corridor.py
+  - scripts/audit_phase12cA_layouts.py
+  - scripts/run_phase12cA.py
+  - scripts/freeze_phase12cA_lock.py
+  - scripts/analyze_phase12cA.py
+  - tests/test_phase12c.py
+
+authorization:
+  approval_reference: User approved Phase 12c-A only on 2026-09-28; no 12c-B, training, DAgger, or reserve access.
+  reserve_accessed: false
+  training_authorized: false

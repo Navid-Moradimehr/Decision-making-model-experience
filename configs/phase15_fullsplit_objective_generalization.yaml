@@ -1,0 +1,77 @@
+schema: phase15_fullsplit_objective_generalization_v1
+status: authorized_single_offline_objective_comparison
+run_id: phase15_fullsplit_objective_generalization_v1
+parents:
+  feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  feature_manifest: artifacts/runs/phase15_offline_v2/features/manifest.json
+  phase15_v2_lock: experiments/phase15_offline_v2.lock.json
+  regression32_result: artifacts/runs/phase15_offline_v2_fit_diagnostic_v2/diagnostic.json
+  regression32_manifest: artifacts/runs/phase15_offline_v2_fit_diagnostic_v2/manifest.json
+  pairwise32_result: artifacts/runs/phase15_v2_pairwise32_v1/result.json
+  pairwise32_manifest: artifacts/runs/phase15_v2_pairwise32_v1/manifest.json
+  pairwise32_lock: experiments/phase15_v2_pairwise32.lock.json
+split:
+  scheme: sha256_layout_group_phase15_v1
+  salt: "phase15-layout-split-v1:"
+  train_layout_count: 60
+  validation_layout_count: 20
+  test_layout_count: 20
+  train_row_count: 571
+  validation_row_count: 202
+  test_row_count: 149
+  train_layouts_sha256: 1FF811CF3169CA339C23FC73A22617C10249297565702A592D2BD3C9C683769B
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  test_layouts_sha256: 83EF25471DA3F9A12EF26E4E594EDE657755319F410A0EB90F5DBA177DED3403
+features:
+  representation: R0
+  dimension: 61
+  target: nine saved normalized teacher forced-action regrets
+  student_input_allowlist: [R0_state_only]
+models:
+  - objective: regression
+    seed: 15015
+    hidden: [32, 32]
+    max_epochs: 1200
+    patience: 100
+    learning_rate: 0.002
+    l2: 0.00001
+    weighting: equal_total_weight_per_train_layout
+    checkpoint: minimum_validation_layout_macro_regret_then_objective_loss
+  - objective: pairwise
+    seed: 15015
+    hidden: [32, 32]
+    max_epochs: 1200
+    patience: 100
+    learning_rate: 0.002
+    l2: 0.00001
+    weighting: equal_total_weight_per_train_layout
+    checkpoint: minimum_validation_layout_macro_regret_then_objective_loss
+metrics:
+  primary: paired_test_layout_macro_regret_difference_pairwise_minus_regression
+  bootstrap_resamples: 10000
+  bootstrap_seed: 150151
+  confidence: 0.95
+  catastrophic_regret_threshold: 0.5
+  inference_latency_probe_split: validation
+decision_rule:
+  pairwise_improvement_requires_mean_difference_below_zero: true
+  pairwise_improvement_requires_ci_upper_below_zero: true
+scope:
+  new_training_only_two_fixed_objectives: true
+  heldout_test_metrics_once_after_checkpoint_freeze: true
+  heldout_model_selection: false
+  test_reruns_or_tuning: false
+  new_transitions: false
+  new_episodes: false
+  planner_calls: false
+  closed_loop: false
+  dagger: false
+  calibration: false
+  world_model: false
+  reserve_access: false
+resource_caps:
+  wall_seconds: 10800
+  output_bytes: 20971520
+outputs:
+  run_dir: artifacts/runs/phase15_fullsplit_objective_generalization_v1
+  report: reports/phase15_fullsplit_objective_generalization_result.md

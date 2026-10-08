@@ -1,0 +1,80 @@
+project:
+  name: consequence-lab
+  phase: 1
+  protocol: bounded_numeric_dynamics_v1
+  device: cpu
+  max_gpu_hours: 0
+  generated_artifact_target_bytes: 1000000000
+  generated_artifact_stop_bytes: 2000000000
+
+environment:
+  id: swm/TwoRoom-v1
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  geometry: fixed
+  max_episode_steps: 200
+  success_distance_px: 16.0
+
+data:
+  episode_seed_ranges:
+    train: [204000, 204070]
+    validation: [204070, 204080]
+    calibration: [204080, 204090]
+    test: [204090, 204110]
+  transitions_cap: 22000
+  collection_policies:
+    noisy_geometric_fraction: 0.5
+    persistent_random_fraction: 0.5
+    persistent_random_resample_steps: [1, 8]
+  split_unit: complete_episode_seed
+  calibration_split_use: reserved_not_used_in_phase_1
+
+model:
+  type: residual_mlp
+  input: [normalized_observation, action]
+  target: normalized_next_observation_delta
+  observation_scale_px: 224.0
+  hidden_dims: [128, 128]
+  optimizer: Adam
+  learning_rate: 0.001
+  batch_size: 256
+  max_epochs: 100
+  early_stopping_patience: 10
+  model_selection: validation_one_step_delta_mse
+  baselines: [persistence, ridge_linear_dynamics]
+  training_device: cpu
+
+planning:
+  candidate_count: 65
+  horizon_steps: 64
+  execution_steps_before_replanning: 1
+  objective: terminal_distance_plus_0.1_mean_distance
+  ranking_test_states_per_episode: 5
+  ranking_test_episodes: 20
+  ranking_state_sampling: fixed_evenly_spaced_nonterminal_indices
+  tie_tolerance_pixels: 1.0
+  normalized_regret_scale: 1.1
+
+evaluation:
+  held_out_episode_count: 20
+  report_one_step_delta_rmse: true
+  report_free_rollout_horizons: [16, 32, 64]
+  report_metrics:
+    - tie_aware_pairwise_action_ranking_accuracy
+    - top1_candidate_agreement
+    - normalized_regret
+    - closed_loop_success
+    - paired_success_difference_vs_simulator_shooting
+    - planner_latency
+    - model_calls
+  student_training_authorized: false
+  teacher_generation_authorized: false
+  gate:
+    minimum_pairwise_ranking_accuracy: 0.90
+    maximum_normalized_regret: 0.10
+    use_test_for_model_selection_or_tuning: false
+
+stop_conditions:
+  - "If one-step prediction is unstable or non-finite, stop and debug before planning."
+  - "If no predictor beats persistence and ridge on validation, do not train a neural student."
+  - "If held-out ranking or regret gate fails, stop teacher generation and diagnose failure category."
+  - "This phase is not evidence for JEPA, visual prediction, transfer, or model-based RL."

@@ -1,0 +1,114 @@
+schema: phase20-exact-plan-warmstart-v1
+status: design-frozen-not-execution-locked
+authorization: existing_user_evidence_based_followup_authorization
+protocol: reports/phase20_exact_plan_warmstart_protocol.md
+parent:
+  result: artifacts/runs/phase19_uniform_b48_confirmation_v1/result.json
+  result_sha256: 3A26C87342A37821A6CA5E23C47A42A1D2ACCD7968D753001A6514272115D017
+  lock: experiments/phase19_uniform_b48_confirmation_v1.lock.json
+  lock_sha256: 1385552A610F81835DC35EB119E1495C892433EAA9FA1BBA9D62E38C7651E3A1
+scope:
+  training: false
+  learned_proposal: false
+  learned_world_model: false
+  dagger: false
+  standalone_student_control: false
+  reserve_test_d168_access: false
+  new_environment: false
+  adaptive_budget: false
+  exact_final_evaluation: true
+block:
+  proposed_seed_start: 205000
+  proposed_layout_count: 500
+  reserve_sealed_half_open: [130000, 130200]
+  d168_sealed_half_open: [197000, 197100]
+  phase17_consumed_half_open: [201000, 201500]
+  phase18_consumed_half_open: [202000, 202500]
+  phase19_consumed_half_open: [203000, 203500]
+  replicas: [0, 1, 2]
+  episodes: 6500
+actions:
+  ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  vectors_source: consequence_lab.inertial_corridor.ACTION_VECTORS
+  mutation_neighbor_rule: chebyshev_distance_one_in_action_vector_grid
+methods:
+  - {name: uniform_b32, kind: uniform, budget: 32, replicas: 3, warm_insertions: 0}
+  - {name: shifted_b32, kind: shift_previous_winner, budget: 32, replicas: 3, warm_insertions: 1}
+  - {name: mutated_b32, kind: shift_plus_one_action_mutations, budget: 32, replicas: 3, warm_insertions: 5, mutation_count: 4}
+  - {name: uniform_b48, kind: uniform, budget: 48, replicas: 3, warm_insertions: 0}
+  - {name: geometry_waypoint, kind: geometry, budget: null, replicas: 1, warm_insertions: 0}
+planning:
+  horizon: 8
+  nominal_budgets: [32, 48]
+  mandatory_constant_sequences: 9
+  mutation_count: 4
+  residual_sequences_remain_uniform: true
+  budget_counts_unique_exactly_scored_sequences: true
+  duplicate_warm_proposal_behavior: keep_uniform_sequence_and_count_overlap
+  remove_for_insertion: last_uniform_residual_candidate
+  warm_state_scope: same_episode_method_replica_only
+  first_decision: uniform_no_prior_plan
+  shifted_plan: previous_selected_sequence_drop_first_then_repeat_last_action_if_needed
+  mutation: one_action_position_per_variant_neighbor_from_ACTION_VECTORS
+  mutation_positions: distinct_uniform_positions_when_horizon_at_least_mutation_count
+  mutation_alternatives: uniform_among_legal_chebyshev_neighbors
+  mutation_seed_xor: 0x51A7E20D
+  query_seed_formula: (layout_seed*1000003+decision_index+replica*2654435769) mod 2^32
+  objective: frozen_phase11_lexicographic
+  tie_break: lexicographic_action_sequence
+  exact_rollout: true
+  execute_only_first_action_then_replan: true
+  terminal_budget: min(nominal_budget,9**remaining_horizon)
+  attempt_cap: 1280000
+geometry: {resolution: 0.04, waypoint_tolerance: 0.03}
+analysis:
+  sampling_unit: layout_sha256
+  replica_aggregation: average_three_within_layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 20003
+  order_seed: 20002
+  descriptive_confidence: 0.95
+  rare_event_one_sided_exact_confidence: 0.9916666666666667
+  success_one_sided_bootstrap_confidence: 0.9833333333333333
+  method_selection_order: [uniform_b32, shifted_b32, mutated_b32]
+  warmstart_attribution:
+    compare_shifted_and_mutated_with_uniform_b32: true
+    one_sided_bootstrap_confidence: 0.9875
+    benefit_if_success_difference_adjusted_lower_above_zero_or_collision_difference_adjusted_upper_below_zero: true
+  selection_confidence_rationale: familywise_alpha_0.05_across_three_b32_candidates
+  transition_ratio: mean_of_per_layout_candidate_to_uniform_b48_ratios
+  latency_ratio: ratio_of_pooled_per_decision_medians_candidate_to_uniform_b48
+gates:
+  uniform_b48_reference:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_95_lower_strictly_above: 0.0
+  b32_candidate:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    adjusted_success_difference_lower_vs_b48_at_least: -0.05
+    success_regression_layout_event_upper_at_most: 0.05
+    added_collision_layout_event_upper_at_most: 0.05
+    mean_transition_ratio_vs_b48_at_most: 0.70
+    transition_ratio_95_upper_vs_b48_at_most: 0.80
+    median_latency_ratio_vs_b48_at_most: 0.75
+  b32_uniform_control:
+    same_reporting_as_candidate_gate: true
+    selection_role: determine_if_warmstart_is_needed
+execution:
+  device: cpu
+  torch_threads: 16
+  serial: true
+  append_only: true
+  exact_global_and_local_prefix_resume: true
+  no_interim_scoring_or_extension: true
+  no_wall_clock_or_storage_cap: true
+outputs:
+  run_dir: artifacts/runs/phase20_exact_plan_warmstart_v1
+  execution_lock: experiments/phase20_exact_plan_warmstart_v1.lock.json
+  report: reports/phase20_exact_plan_warmstart_result.md

@@ -1,0 +1,129 @@
+project:
+  name: consequence-lab
+  phase: 3
+  protocol: tworoom_simulator_teacher_candidate_distillation_proposal_v1
+  status: proposed_not_authorized
+  authorized_to_run: false
+  device: cpu
+  max_gpu_hours: 0
+  max_cpu_hours: 3
+  generated_artifact_target_bytes: 100000000
+  generated_artifact_stop_bytes: 2000000000
+
+environment:
+  id: swm/TwoRoom-v1
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  geometry: fixed
+  max_episode_steps: 200
+  success_distance_px: 16.0
+
+data:
+  split_unit: complete_episode_seed
+  seed_range_convention: half_open
+  seed_ranges:
+    train: [206000, 206060]
+    validation: [206060, 206080]
+    reserved_not_used: [206080, 206100]
+    test: [206100, 206200]
+  prior_used_seed_ranges:
+    - [601, 604]
+    - [202700, 202940]
+    - [203000, 203200]
+    - [204000, 204110]
+    - [205000, 205020]
+  training_state_source: simulator_truth_shooting_rollouts
+  validation_state_source: simulator_truth_shooting_rollouts
+  save_all_candidate_costs: true
+  save_candidate_features_and_stable_ids: true
+  student_features_exclude:
+    - candidate_rollout_states
+    - candidate_costs
+    - teacher_probabilities
+    - planner_search_statistics
+    - future_observations
+  storage_format: compressed_npz_or_parquet
+
+teacher:
+  type: simulator_truth_receding_horizon_shooting
+  candidate_count: 65
+  horizon_steps: 64
+  execution_steps_before_replanning: 1
+  objective: terminal_distance_plus_0.1_mean_distance
+  candidate_order: pinned_phase0_generator_order
+  tie_break: lowest_stable_candidate_id
+  soft_target_temperature: median_positive_train_state_cost_gap_above_best
+
+students:
+  direct_behavior_cloning:
+    inputs: [normalized_observation, goal]
+    outputs: "9 primitive-action logits"
+    target: teacher_best_candidate_first_primitive
+    hidden_dims: [64, 64]
+    loss: hard_cross_entropy
+  candidate_scorer_soft:
+    inputs: [normalized_observation, goal, supplied_candidate_sequence]
+    shared_scorer: true
+    candidate_count: 65
+    hidden_dims: [64, 64]
+    output: one_logit_per_candidate
+    loss: soft_target_cross_entropy
+  candidate_scorer_hard:
+    inputs: [normalized_observation, goal, supplied_candidate_sequence]
+    shared_scorer: true
+    candidate_count: 65
+    hidden_dims: [64, 64]
+    output: one_logit_per_candidate
+    loss: hard_cross_entropy
+  optimizer: Adam
+  learning_rate: 0.001
+  batch_size: 512
+  max_epochs: 100
+  early_stopping_patience: 10
+  model_selection: validation_loss
+  training_device: cpu
+  closed_loop_action: argmax_candidate_then_execute_first_primitive_and_replan
+
+evaluation:
+  paired_methods:
+    - geometric_greedy
+    - simulator_truth_shooting_teacher
+    - direct_behavior_cloning
+    - candidate_scorer_soft
+    - candidate_scorer_hard
+  test_episode_count: 100
+  bootstrap_unit: episode_seed
+  bootstrap_replicates: 10000
+  report_metrics:
+    - success_rate_with_wilson_interval
+    - paired_success_difference_vs_greedy
+    - planner_gain_retention_fraction
+    - mean_steps_to_success
+    - episode_cost
+    - best_available_candidate_success
+    - teacher_top1_agreement
+    - teacher_preference_kl
+    - candidate_regret
+    - median_and_p95_decision_latency
+    - teacher_simulator_transitions
+    - student_parameter_count
+  calibration_claim: none
+  test_for_model_selection_or_temperature_tuning: false
+
+gates:
+  teacher_replication:
+    minimum_success_rate: 0.80
+    minimum_paired_gain_vs_greedy: 0.10
+  student_screen:
+    minimum_teacher_gain_retained: 0.80
+    paired_success_difference_lower_95_ci_vs_greedy: 0.0
+    minimum_median_speedup_vs_teacher: 10.0
+  interpretation:
+    - If direct behavior cloning matches the candidate scorer, prefer the simpler direct policy for this environment.
+    - If the teacher replication gate fails, stop before student training/evaluation claims.
+    - If student gates fail, report planner imitation failure; do not add a world model or DAgger to rescue the result.
+    - These are pilot screening gates, not publication-level confirmatory thresholds.
+
+stop_conditions:
+  - "Do not execute while authorized_to_run is false."
+  - "Retire the full test interval if a post-launch protocol defect exposes test metrics."
+  - "No DAgger, model-based RL, learned dynamics, JEPA, geometry transfer, or probability calibration in this phase."

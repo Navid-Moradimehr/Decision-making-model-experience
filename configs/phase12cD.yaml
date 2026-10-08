@@ -1,0 +1,144 @@
+phase: 12c-D
+status: staged_authorized_gated_program
+date: "2026-09-28"
+d1_protocol_revision: 3
+
+research_question: >-
+  Can a state-conditioned candidate scorer learn balanced-planner preferences
+  when evaluated on unseen layouts from the same occupancy distribution, and
+  does policy-matched training data close the gap to the balanced exact planner?
+
+execution_order:
+  stages:
+    - D1_existing_fitting_data_learnability_check
+    - D2_occupancy_matched_balanced_teacher_training_and_fresh_offline_gate
+    - D3_closed_loop_development_and_up_to_two_dagger_cycles
+    - D4_one_time_final_reserve_if_all_prior_gates_pass
+  advance_only_if_prior_gate_passes: true
+
+stage_D1:
+  purpose: separate in-fold optimization/representation failure from source-policy occupancy mismatch
+  input_dataset: artifacts/runs/phase12cC_archived_training_v1
+  input_manifest_sha256: 9582D657F341B001C6D4177BD50EF8F620D0DC92C58238FEA146598763444A66
+  allowed_files:
+    - student_inputs.npz
+    - teacher_targets.npz
+    - sample_metadata.json
+    - manifest.json
+  forbidden_inputs:
+    - Phase12cC model-selection or offline-gate data/outcomes
+    - development, DAgger, or reserve data/outcomes
+  fold:
+    unit: layout_sha256
+    method: sort_by_sha256_of_phase12cD1_fold_namespace_plus_layout_sha256
+    training_layouts: 128
+    internal_validation_layouts: 32
+    namespace: phase12cD1-layout-fold-v1
+  state_preprocessing:
+    method: train_fold_mean_std_zscore
+    fit_on: training_layouts_only
+    std_floor: 1.0e-6
+    persist_mean_and_scale: true
+  model:
+    architecture: same_shared_pointwise_candidate_scorer_as_phase12cC
+    kinds: [direct_candidate_value, bounded_preference_policy]
+    hidden_state: 128
+    embedding: 64
+    maximum_parameters: 100000
+    optimizer: AdamW
+    learning_rate: 0.0003
+    weight_decay: 0.0001
+    batch_decision_sets: 32
+    max_epochs: 120
+    early_stopping_patience: 15
+    gradient_norm_clip: 1.0
+    seeds: [1331, 1332, 1333]
+    targets_use_banks: [0, 1, 2, 3, 4, 5]
+    evaluation_uses_banks: [6, 7, 8, 9, 10, 11]
+  baselines:
+    - constant_coast_action_0
+    - geometry_waypoint
+  geometry_parameters:
+    resolution: 0.04
+    waypoint_tolerance: 0.03
+  primary_metrics:
+    - layout_macro_argmax_heldout_regret
+    - paired_improvement_over_geometry
+    - paired_improvement_over_constant_coast
+    - 98.75_percent_one_sided_cluster_bounds
+    - per_action_choice_counts
+    - candidate_permutation_consistency
+  advancement_gate:
+    at_least_one_model_family_must_pass: true
+    mean_regret_maximum: 0.15
+    one_sided_98_75_regret_upper_maximum: 0.20
+    improvement_over_geometry_minimum: 0.05
+    one_sided_98_75_improvement_lower_minimum: 0.0
+    permutation_max_probability_deviation_maximum: 1.0e-6
+    semantic_choice_flips_maximum: 0
+    failure_action: stop_without_D2_data_collection
+  resources:
+    device: cpu
+    wall_seconds: 1800
+    generated_bytes: 20971520
+    parameters: 100000
+  output: artifacts/runs/phase12cD1_learnability_v3
+
+stage_D2:
+  status: authorized_only_if_D1_gate_passes
+  training_layouts: reuse_only_phase12cC_fitting_layout_seeds_and_hashes
+  training_state_policy: balanced_teacher_closed_loop
+  fresh_model_selection_seed_block: {start: 180000, count: 40}
+  fresh_offline_gate_seed_block: {start: 180040, count: 40}
+  note: these blocks require a hash-only audit before any rollout or label collection
+  model_selection_then_checkpoint_lock_then_offline_gate: true
+  advancement_gate: reuse_phase12cC_numeric_gate_without_relaxation
+  failure_action: stop_before_D3
+  resources:
+    device: cpu
+    total_wall_seconds: 10800
+    fitting_wall_seconds: 7200
+    generated_bytes: 104857600
+    parameters: 100000
+  output_root: artifacts/runs
+
+stage_D3:
+  status: authorized_only_if_D2_offline_gate_passes
+  development_seed_block: {start: 143000, count: 40}
+  dagger_seed_block: {start: 142000, count: 120}
+  dagger_cycles_maximum: 2
+  dagger_layouts_per_cycle: 40
+  advancement_gate:
+    initial_student:
+      minimum_success_improvement_over_geometry: 0.10
+      paired_95_percent_interval_lower: 0.0
+      collision_difference_upper: 0.05
+    if_not: stop_before_DAgger
+    after_dagger:
+      retain_cycle_only_if_success_improves: true
+      collision_difference_upper: 0.05
+    finalization:
+      minimum_success_improvement_over_geometry: 0.20
+      paired_95_percent_interval_lower: 0.0
+      collision_difference_upper: 0.05
+  reserve_access_before_checkpoint_lock: false
+
+stage_D4:
+  status: authorized_only_if_D3_finalization_gate_passes
+  reserve_seed_block: {start: 130000, count: 200}
+  access_count: one
+  checkpoint_and_manifest_lock_before_access: true
+  no_tuning_after_access: true
+  advancement_gate:
+    success_advantage_over_geometry_minimum: 0.20
+    paired_95_percent_interval_lower_over_geometry: 0.0
+    collision_rate_no_more_than_geometry_plus: 0.05
+    must_report_teacher_gap_and_latency: true
+
+protocol_guards:
+  old_phase12cC_selection_gate_outcomes_reused_for_D1: false
+  reserve_used_for_model_selection: false
+  world_model_or_jepa: false
+  language_or_visual_model: false
+  overwrite_forbidden: true
+  every_stage_requires_its_own_hash_lock: true

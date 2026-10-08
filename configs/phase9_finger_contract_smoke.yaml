@@ -1,0 +1,36 @@
+phase: 9
+experiment: finger_contract_and_branch_smoke
+scope: feasibility_only_no_performance_evaluation
+source: dm_control.suite.finger/turn_hard
+source_version: 1.0.47
+source_pin_key: dm_control_finger
+runtime:
+  python: "3.12.3"
+  dm_control: "1.0.47"
+  mujoco: "3.14.0"
+  numpy: "2.5.3"
+seeds: [90271, 90272, 90273]
+prefix_actions:
+  - [0.0, 0.0]
+  - [0.6, -0.4]
+  - [-0.5, 0.7]
+branch_actions:
+  - [0.2, 0.8]
+  - [-0.7, 0.1]
+  - [0.0, -1.0]
+  - [0.9, 0.4]
+checks:
+  observation_shapes:
+    position: [4]
+    velocity: [3]
+    touch: [2]
+    target_position: [2]
+    dist_to_target: []
+  action_shape: [2]
+  action_bounds: [-1.0, 1.0]
+  branch_absolute_tolerance: 1.0e-12
+  require_finite_values: true
+artifact_policy:
+  save_episode_metrics_only: true
+  save_observations_or_physics_states: false
+  max_artifact_bytes: 1048576

@@ -1,0 +1,79 @@
+project:
+  name: consequence-lab
+  phase: 6B-development
+  protocol: acrobot_classical_baseline_and_exact_shooting_development_v1
+  authorization: D052_acrobot_development_only
+  max_process_cpu_seconds: 1800
+  max_generated_artifact_bytes: 2000000
+  generated_episode_traces: false
+  teacher_labels: false
+  student_training: false
+  heldout_confirmation_access: false
+
+environment:
+  package: gymnasium
+  version: 1.3.0
+  source_revision: 53bf3e9a884783eb72ad3fc8b15780914c97c3e1
+  wheel_sha256: 6b8c159a8540dcbcb221722d7efda24d78ebbcbc3bd2ea1c2611aa2a34471fc2
+  task: Acrobot-v1
+  legal_actions: [0, 1, 2]
+  action_torques: [-1.0, 0.0, 1.0]
+  max_episode_steps: 500
+
+seeds:
+  tuning_start: 260300
+  tuning_count: 8
+  development_start: 260400
+  development_count: 20
+  confirmation_start: 261000
+  confirmation_count: 100
+  roles:
+    tuning: gain_and_planner_selection_only
+    development: choice_and_variance_inspection_only
+    confirmation: sealed_until_new_frozen_decision
+
+classical_baselines:
+  energy_pumping:
+    enabled: true
+    gains: null
+  collocated_pfl_energy_shaping:
+    enabled: true
+    gain_grid:
+      k1: [0.1, 0.5, 1.0]
+      k2: [0.1, 0.5, 1.0]
+      k3: [0.001, 0.01, 0.05]
+
+exact_simulator_shooting:
+  enabled: true
+  horizons: [12, 24]
+  candidate_counts: [24, 48]
+  action_block_lengths: [2, 4]
+  terminal_height_penalty_scale: 8.0
+  candidate_policy: iid_uniform_legal_torques_plus_three_constant_sequences
+  replan_every_environment_step: true
+  branch_initialization: public_observation_reconstruction_only
+
+evaluation:
+  primary_outcome: episode_success_within_500_steps
+  secondary_outcomes:
+    - official_episode_return
+    - steps_to_success
+    - action_decision_process_cpu_seconds
+    - simulator_branch_steps
+    - candidate_success_availability
+  selection_rule:
+    - maximize_tuning_mean_success
+    - tie_break_maximize_tuning_mean_return
+    - tie_break_minimize_tuning_decision_cpu
+  confirmation_gate_to_freeze_before_confirmation:
+    paired_success_gain_percentage_points: 10
+    paired_bootstrap_95pct_lower_bound: 0.0
+    candidate_success_availability_minimum: 0.8
+    note: "Inspect only tuning/development evidence, freeze policy and gate in a new decision, then open confirmation seeds."
+
+artifacts:
+  run_directory: artifacts/runs/phase6b_acrobot_headroom_dev_v1
+  refuse_overwrite: true
+  save_per_episode_aggregates_only: true
+  save_action_traces: false
+  save_simulator_states: false

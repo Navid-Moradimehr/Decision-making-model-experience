@@ -1,0 +1,65 @@
+schema: phase15_d166_failure_aware_risk_v1
+status: frozen_offline_risk_screen
+protocol: reports/phase15_d166_protocol.md
+parents:
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d162_query_rows: artifacts/runs/phase15_d162_fresh_layout_relational_v1/fresh_layout_rows.npz
+  d162_result: artifacts/runs/phase15_d162_fresh_layout_relational_v1/result.json
+  d162_manifest: artifacts/runs/phase15_d162_fresh_layout_relational_v1/manifest.json
+  d161_r0_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_only_best_training_objective.npz
+  d161_predicted_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_predicted_outcome_steps_best_training_objective.npz
+  d161_oracle_checkpoint: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_exact_outcome_steps_oracle_best_training_objective.npz
+  d165_lock: experiments/phase15_d165_action_effect_alignment_v2.lock.json
+  d165_result: artifacts/runs/phase15_d165_action_effect_alignment_v2/result.json
+  d165_manifest: artifacts/runs/phase15_d165_action_effect_alignment_v2/manifest.json
+  d165_effect_checkpoint: artifacts/runs/phase15_d165_action_effect_alignment_v2/absolute_plus_effect.npz
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+split:
+  fold_count: 5
+  validation_fold: 0
+  function: sha256_layout_hex_prefix_integer_mod_5
+model:
+  input_dimension: 65
+  hidden: [32, 32]
+  seed: 16651
+  learning_rate: 0.002
+  l2: 0.00001
+  max_epochs: 600
+  patience: 60
+  positive_collision_loss_weight: 5.0
+  positive_sampling_multiplier: 3
+  optimizer: full_batch_adam
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 0.00000001
+threshold:
+  grid: [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.30, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.40, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.50, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.60, 0.61, 0.62, 0.63, 0.64, 0.65, 0.66, 0.67, 0.68, 0.69, 0.70, 0.71, 0.72, 0.73, 0.74, 0.75, 0.76, 0.77, 0.78, 0.79, 0.80, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00]
+  minimum_validation_collision_recall: 0.90
+  selection: largest_grid_threshold_meeting_minimum_recall_else_zero
+evaluation:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  minimum_collision_selection_reduction_vs_policy_a: 0.05
+  minimum_catastrophic_fraction_reduction_vs_policy_a: 0.05
+  maximum_macro_regret_vs_R0_plus: 0.02
+  bootstrap_resamples: 2000
+  bootstrap_seed: 16601
+scope:
+  d153_grouped_training_and_threshold_selection: true
+  reused_d162_exploratory_scoring: true
+  new_labels: false
+  simulator_calls: false
+  planner_calls: false
+  new_layouts: false
+  closed_loop: false
+  dagger: false
+  world_model_training: false
+  jepa: false
+  reserve_access: false
+  test_access: false
+outputs:
+  lock: experiments/phase15_d166_failure_aware_risk.lock.json
+  run_dir: artifacts/runs/phase15_d166_failure_aware_risk_v1
+  report: reports/phase15_d166_result.md

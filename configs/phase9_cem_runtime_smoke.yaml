@@ -1,0 +1,33 @@
+phase: 9
+experiment: finger_exact_cem_runtime_smoke
+scope: planner_runtime_only_preflight_no_performance_evaluation
+source: dm_control.suite.finger/turn_hard
+runtime:
+  python: "3.12.3"
+  dm_control: "1.0.47"
+  mujoco: "3.14.0"
+  numpy: "2.5.3"
+seed: 990612
+horizons: [20, 10]
+repeats_per_horizon: 3
+knots:
+  control_steps_per_knot: 5
+samples: 64
+iterations: 3
+elites: 8
+initial_mean: 0.0
+initial_std: 0.5
+minimum_std: 0.05
+action_bounds: [-1.0, 1.0]
+gamma: 0.99
+limits:
+  max_process_cpu_seconds: 600
+  max_wall_seconds: 300
+  max_generated_artifact_bytes: 1048576
+artifact_policy:
+  output_timing_only: true
+  save_episode_return: false
+  save_candidate_costs: false
+  save_candidate_actions: false
+  save_observations_or_physics_states: false
+  save_labels_or_models: false

@@ -1,0 +1,54 @@
+project:
+  protocol: phase1_horizon_diagnostic_v1
+  device: cpu
+  training_authorized: false
+  teacher_generation_authorized: false
+
+environment:
+  id: swm/TwoRoom-v1
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  max_episode_steps: 200
+  success_distance_px: 16.0
+  observation_scale_px: 224.0
+
+frozen_model:
+  checkpoint: artifacts/runs/phase1_tworoom_dynamics_v1/residual_mlp.pt
+  checkpoint_sha256: 2b0b6b40e49bfbf33c8621d16743f662df4a7d4180f69c3841516a378c434884
+  architecture: [12, 128, 128, 10]
+  train_or_finetune: false
+
+development:
+  episode_seeds: [205000, 205020]
+  seed_range_convention: half_open
+  policy_mix_by_episode: alternating_noisy_geometric_and_persistent_random
+  persistent_random_resample_steps: [1, 8]
+  snapshot_steps: [0, 40, 80, 120, 160]
+
+planning:
+  horizons_steps: [16, 32, 64]
+  candidate_count: 65
+  action_sequence: two_equal_segments_plus_wait
+  execution_steps_before_replanning: 1
+  objective:
+    terminal_distance_weight: 1.0
+    mean_distance_weight: 0.1
+    scale: arena_diagonal
+    absorbing_success: true
+  ranking_tie_tolerance_px: 1.0
+  normalized_regret_divisor: 1.1
+
+statistics:
+  cluster_unit: episode_seed
+  bootstrap_replicates: 5000
+  bootstrap_seed: 205123
+
+development_gates_not_confirmatory:
+  minimum_oracle_candidate_availability: 0.80
+  minimum_model_pairwise_accuracy: 0.90
+  maximum_model_normalized_regret: 0.10
+
+restrictions:
+  - no model training or checkpoint selection
+  - no teacher labels, policy students, or test-set evaluation
+  - horizon choice from this sweep requires a new independent confirmation
+  - preserve all earlier Phase-0/1 seed ranges

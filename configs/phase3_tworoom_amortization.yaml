@@ -1,0 +1,175 @@
+project:
+  name: consequence-lab
+  phase: 3
+  protocol: tworoom_amortization_and_realizability_v1
+  status: authorized_train_validation_only
+  authorized_experiments: [3B]
+  device: cpu
+  max_cpu_hours: 12
+  max_gpu_hours: 0
+  generated_artifact_target_bytes: 100000000
+  generated_artifact_stop_bytes: 2000000000
+
+environment:
+  id: swm/TwoRoom-v1
+  revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  task: known_goal_fixed_geometry
+  max_episode_steps: 200
+  success_distance_px: 16.0
+  candidate_count: 65
+  candidate_horizon_steps: 64
+  objective:
+    terminal_distance_weight: 1.0
+    mean_distance_weight: 0.1
+    distance_scale_px: 316.783527087894
+    absorbing_success: true
+  candidate_tie_tolerance: 0.000001
+
+data:
+  split_unit: complete_episode_seed
+  seed_range_convention: half_open
+  seed_ranges:
+    train: [241000, 241300]
+    validation: [242000, 242060]
+    calibration: [243000, 243060]
+    locked_test: [244000, 244200]
+    dagger_correction: [245000, 245060]
+    matched_offline_control: [246000, 246060]
+  behavior_assignment:
+    train: {simulator_truth_shooting: 100, greedy: 100, random: 100}
+    validation: {simulator_truth_shooting: 20, greedy: 20, random: 20}
+    calibration: {simulator_truth_shooting: 20, greedy: 20, random: 20}
+    matched_offline_control: {simulator_truth_shooting: 20, greedy: 20, random: 20}
+  sampled_step_indices: [0, 25, 50, 75, 100, 125, 150, 175]
+  student_input_allowlist: [observation, candidate_sequences, valid_candidate_mask]
+  student_input_exclude:
+    - candidate_costs
+    - candidate_regrets
+    - teacher_probabilities
+    - candidate_reachability
+    - candidate_future_positions
+    - simulator_snapshot
+    - candidate_id
+    - episode_seed
+    - behavior_policy
+  save_full_candidate_cost_matrix: true
+  save_teacher_future_positions: false
+  prior_used_seed_ranges:
+    - [601, 604]
+    - [202700, 202940]
+    - [203000, 203200]
+    - [204000, 204110]
+    - [205000, 205020]
+    - [206000, 206100]
+    - [221001, 221021]
+    - [222000, 222020]
+    - [223000, 223020]
+    - [230000, 230120]
+    - [231000, 231200]
+    - [232000, 232020]
+    - [240000, 240064]
+
+teacher:
+  type: exact_pinned_simulator_receding_horizon_shooting
+  execution_steps_before_replanning: 1
+  tie_break: lowest_candidate_index
+  target_distribution: softmax_negative_regret
+  candidate_regret: cost_minus_minimum_cost
+  normalized_regret_divisor: 1.1
+  temperature:
+    base: median_positive_train_regret
+    multipliers: [0.1, 0.3, 1.0]
+  joint_loss:
+    form: kl_plus_weighted_expected_normalized_regret
+    regret_weights: [0.0, 0.25, 1.0]
+
+models:
+  direct_action_policy:
+    type: observation_mlp
+    outputs: 9
+    hidden_dimensions: [64, 64]
+    input: observation_only
+    loss: hard_cross_entropy_on_best_first_action
+  independent_candidate_scorer:
+    type: shared_candidate_mlp
+    hidden_dimensions: [64, 64]
+    candidate_context: none
+    outputs: one_logit_per_candidate
+  set_equivariant_candidate_scorer:
+    type: deepsets_masked_mean_context
+    hidden_dimensions: [64, 64]
+    candidate_context: masked_mean_embedding
+    slot_embeddings: false
+    outputs: one_logit_per_candidate
+  candidate_cost_regressor:
+    type: shared_candidate_cost_mlp
+    hidden_dimensions: [64, 64]
+    outputs: one_normalized_cost_per_candidate
+  initialization_seeds: [11, 22, 33]
+  optimizer: Adam
+  learning_rate: 0.001
+  batch_size_states: 128
+  max_epochs: 200
+  early_stopping_patience: 20
+  weight_decay: 0.0
+  device: cpu
+  checkpoint_selection: minimum_validation_normalized_selected_regret
+  normalized_observation_divisor: 224.0
+  candidate_action_encoding: [first_half_mean_xy, second_half_mean_xy]
+
+metrics:
+  split_aggregation: equal_episode_weight
+  bootstrap_unit: complete_episode_seed
+  bootstrap_replicates: 10000
+  normalized_regret_divisor: 1.1
+  report:
+    - selected_candidate_normalized_regret
+    - expected_normalized_regret
+    - first_action_minimum_cost_regret
+    - teacher_plan_top1_agreement
+    - teacher_first_action_agreement
+    - closed_loop_success
+    - steps_to_success
+    - teacher_soft_nll
+    - teacher_brier_score
+    - fixed_bin_ece_descriptive_only
+    - permutation_equivariance_error
+    - batch_one_median_latency_ms
+    - batch_one_p95_latency_ms
+    - parameters
+    - wall_clock_seconds
+
+gates:
+  teacher_realizability:
+    phase3a_saved_data_audit_status: go
+    runtime_payload_fields_must_match_allowlist: true
+  permutation_equivariance:
+    max_absolute_probability_error: 0.000001
+    permutations_per_fixture: 20
+    candidate_counts: [9, 17, 33, 65]
+  offline_screen:
+    max_validation_selected_regret_ratio_vs_random: 0.5
+    closed_loop_success_must_exceed_validation_greedy: true
+  no_locked_test_access_before:
+    - model_selection
+    - one_dagger_cycle
+    - calibration_temperature_fit
+  final_compression_claim:
+    paired_success_gain_95pct_lower_bound_vs_greedy_gt: 0.0
+    exact_planner_success_deficit_95pct_upper_bound_max: 0.05
+    median_cpu_latency_speedup_vs_exact_planner_min: 10.0
+
+artifacts:
+  phase3b_run_id: phase3b_tworoom_amortization_v1
+  dataset_directory: artifacts/runs/phase3b_tworoom_data_v1
+  training_directory: artifacts/runs/phase3b_tworoom_training_v1
+  report: reports/phase3b_tworoom_amortization.md
+  manifest_requires_git_commit_and_source_hashes: true
+  refuse_overwrite: true
+
+stop_conditions:
+  - "Stop if any seed range overlaps prior use or another phase-3 split."
+  - "Stop if runtime inputs include teacher fields, simulator state, action IDs, or episode provenance."
+  - "Do not open locked test seeds during training, model selection, DAgger, or calibration."
+  - "Do not proceed to learned futures unless the exact-future diagnostic shows decision value."
+  - "A failed offline screen is a result; diagnose rather than scaling the model."

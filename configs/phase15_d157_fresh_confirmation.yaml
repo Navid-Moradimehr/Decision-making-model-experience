@@ -1,0 +1,102 @@
+schema: phase15_d157_fresh_layout_confirmation_v1
+status: exploratory_frozen_predictor_confirmation
+protocol: reports/phase15_d157_protocol.md
+parents:
+  d156_config: configs/phase15_d156_component_swap.yaml
+  d156_lock: experiments/phase15_d156.lock.json
+  d156_result: artifacts/runs/phase15_d156_component_swap_v1/result.json
+  d156_manifest: artifacts/runs/phase15_d156_component_swap_v1/manifest.json
+  d155_stage_a_lock: experiments/phase15_d155_v2.lock.json
+  d155_stage_a_result: artifacts/runs/phase15_d155_stage_a_v2/result.json
+  d155_stage_a_manifest: artifacts/runs/phase15_d155_stage_a_v2/manifest.json
+  stage_a_head: artifacts/runs/phase15_d155_stage_a_v2/F_outcome_steps.npz
+  d155_stage_c_lock: experiments/phase15_d155_stage_c.lock.json
+  d155_stage_c_result: artifacts/runs/phase15_d155_stage_c_v1/result.json
+  d155_stage_c_manifest: artifacts/runs/phase15_d155_stage_c_v1/manifest.json
+  stage_c_constant: artifacts/runs/phase15_d155_stage_c_v1/per_action_constant.npz
+  stage_c_cart: artifacts/runs/phase15_d155_stage_c_v1/bounded_cart.json
+  stage_c_mlp: artifacts/runs/phase15_d155_stage_c_v1/action_conditioned_mlp.npz
+  d150_r0_head: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d152_lock: experiments/phase15_representation_sufficiency.lock.json
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d153_config: configs/phase15_d153_coverage_scaling_v3.yaml
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d153_result: artifacts/runs/phase15_d153_coverage_scaling_v3/result.json
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d153_train_corpus: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  phase14f_lock: experiments/phase14f_closed_loop_v1.lock.json
+  phase14f_manifest: artifacts/runs/phase14f_closed_loop_v1/manifest.json
+  phase14f_cart: experiments/phase14f_student_cart_v1.json
+  phase14f_cart_manifest: experiments/phase14f_student_cart_v1.manifest.json
+layout_block:
+  seed_start: 195000
+  layout_count: 100
+  reserved_range: {start: 130000, count: 200}
+  forbidden_seed_ranges:
+    - {start: 190000, count: 100}
+    - {start: 191000, count: 80}
+    - {start: 192000, count: 100}
+    - {start: 193000, count: 100}
+    - {start: 194000, count: 140}
+  historical_hash_extensions: [.json, .jsonl]
+state_collection:
+  source_policy: frozen_phase14f_CART
+  policy_artifact: experiments/phase14f_student_cart_v1.json
+  collection_rule: replicate_D153_state_collection_exactly
+  state_features: raw52_plus_physics9_runtime_features
+  actions_per_state: 9
+  action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  teacher: exact_phase14_forced_first_action_then_replanning
+  advance_state_by: frozen_phase14f_CART_action
+  student_training: false
+  store_trajectories: false
+predictors:
+  primary: bounded_cart
+  report_all: [per_action_constant, bounded_cart, action_conditioned_mlp]
+  checkpoint_selection: none
+  fitting: false
+scoring:
+  stage_a_head: frozen_D155_F_outcome_steps
+  direct_baseline: frozen_D150_R0_head
+  exact_outcome_class_order: [success, active_zero, timeout, collision]
+  predicted_outcome_class_order: [success, timeout, collision]
+  regret_definition: existing_phase14_within_state_normalized_rank_regret
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  high_margin_pair_gap_threshold: 0.25
+statistics:
+  unit: layout_hash
+  bootstrap_resamples: 10000
+  bootstrap_seed: 15715
+  confidence: 0.95
+  primary_differences:
+    - exact_exact_advantage_over_direct_R0
+    - bounded_cart_predicted_both_advantage_over_direct_R0
+  advancement_gate:
+    oracle_advantage_requires_positive_lower_95_ci_for_regret_and_catastrophic_improvement: true
+    primary_predictor_requires_point_improvement_at_least: 0.05
+    primary_predictor_requires_positive_lower_95_ci_for_regret_and_catastrophic_improvement: true
+  component_dominance_requires:
+    - outcome_swap_minus_steps_swap_95_ci_excludes_zero_for_regret
+    - same_direction_for_catastrophic_fraction
+    - primary_predictor_only
+scope:
+  fresh_layout_development_confirmation: true
+  simulator_calls_for_locked_teacher_targets: true
+  exact_planner_calls_for_locked_teacher_continuations: true
+  new_teacher_labeled_states: true
+  new_episodes: true
+  model_fitting: false
+  hyperparameter_tuning: false
+  predictor_or_head_updates: false
+  student_closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+  test_data: false
+  reserve_access: false
+  other_environment: false
+outputs:
+  lock: experiments/phase15_d157_fresh_confirmation.lock.json
+  run_dir: artifacts/runs/phase15_d157_fresh_confirmation_v1
+  report: reports/phase15_d157_result.md

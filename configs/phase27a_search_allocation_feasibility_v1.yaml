@@ -1,0 +1,71 @@
+schema: phase27a-search-allocation-feasibility-v1
+status: frozen-historical-only-pending-lock
+protocol: reports/phase27_adaptive_search_allocation_protocol.md
+phase27_config: configs/phase27_adaptive_search_allocation_v1.yaml
+authorization:
+  stage27a_historical_analysis: user-approved-2026-10-05
+  stage27b_fresh_episode_run: not-authorized
+parents:
+  phase26_config: configs/phase26_search_feedback_v4.yaml
+  phase26_lock: experiments/phase26_search_feedback_v4.lock.json
+  phase26_lock_sha256: 35CA0D309FBA4044BAD31FD386B312511A73857D8A15080DB15D51BE18C8889E
+  phase26_result: artifacts/runs/phase26_search_feedback_v4/result.json
+  phase24_records: artifacts/runs/phase24_search_budget_profile_v1/episodes.jsonl
+  phase25_records: artifacts/runs/phase25_b24_confirmation_v1/episodes.jsonl
+  phase24_records_sha256: 8C3610927622B68FF1C0FEECB992F4344C3C1D863B6BE085CDA08A12528E32CE
+  phase25_records_sha256: EA3A641D000760DD158115077EA9A5BF2252599C27E30D466D0A506EEADB6461
+analysis:
+  cohorts:
+    phase24:
+      seed_start: 209000
+      layout_count: 500
+    phase25:
+      seed_start: 209500
+      layout_count: 500
+  expected_replicas: [0, 1, 2]
+  expected_budget: 32
+  expected_horizon: 8
+  prefix_budget: 24
+  extension_budget: 32
+  ridge_l2: 1.0
+  probability_clip: 0.000001
+  folds: 5
+  fold_assignment: layout_seed_offset_modulo_folds
+  row_weighting: equal_total_weight_per_layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 27001
+  top_quartile_fraction: 0.25
+  top_quartile_within_layout: true
+  extension_fraction: 0.25
+  minimum_primary_positives_per_cohort: 100
+  minimum_primary_brier_skill_both_transfer_directions: 0.0
+  top_quartile_enrichment_lower_bound_confidence: 0.95
+  feature_source: phase26_fixed_b24_visible_features
+  features:
+    - state_raw52
+    - previous_plan
+    - prefix_outcome_category_counts
+    - prefix_best_objective_summary
+    - prefix_same_category_runner_up_gap
+    - prefix_best_tie_count
+    - prefix_unique_first_action_count
+    - prefix_first_action_entropy
+  primary_target: strict_objective_improvement_and_selected_first_action_changes
+  secondary_targets:
+    - best_outcome_category_improves_with_candidates_25_32
+    - strict_objective_improves_with_candidates_25_32
+    - selected_first_action_changes
+    - success_candidate_newly_available
+  model_search: false
+  feature_search: false
+  threshold_selection: pooled_grouped_oof_75th_percentile_primary_probability
+scope:
+  historical_inputs_only: true
+  simulator_calls: 0
+  candidate_rollout_evaluations: 0
+  fresh_layout_generation: false
+  reserve_test_d168_access: false
+  stage27b_episode_evaluation: false
+outputs:
+  run_dir: artifacts/runs/phase27a_search_allocation_feasibility_v1
+  execution_lock: experiments/phase27a_search_allocation_feasibility_v2.lock.json

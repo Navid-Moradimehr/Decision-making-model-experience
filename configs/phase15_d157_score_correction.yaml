@@ -1,0 +1,43 @@
+schema: phase15_d157_score_correction_v1
+status: score_only_finalization_of_preserved_aborted_run
+protocol: reports/phase15_d157_score_correction_amendment.md
+parents:
+  d157_config: configs/phase15_d157_fresh_confirmation.yaml
+  d157_protocol: reports/phase15_d157_protocol.md
+  d157_source: src/consequence_lab/phase15_d157.py
+  d157_lock: experiments/phase15_d157_fresh_confirmation.lock.json
+  d157_abort: artifacts/runs/phase15_d157_fresh_confirmation_v1/abort.json
+  d157_dataset: artifacts/runs/phase15_d157_fresh_confirmation_v1/fresh_confirmation_rows.npz
+  d157_accounting: artifacts/runs/phase15_d157_fresh_confirmation_v1/episode_accounting.json
+  stage_a_head: artifacts/runs/phase15_d155_stage_a_v2/F_outcome_steps.npz
+  d150_r0_head: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  stage_c_constant: artifacts/runs/phase15_d155_stage_c_v1/per_action_constant.npz
+  stage_c_cart: artifacts/runs/phase15_d155_stage_c_v1/bounded_cart.json
+  stage_c_mlp: artifacts/runs/phase15_d155_stage_c_v1/action_conditioned_mlp.npz
+  d156_config: configs/phase15_d156_component_swap.yaml
+  stage_c_config: configs/phase15_d155_stage_c.yaml
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d153_train_corpus: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+scope:
+  use_preserved_D157_dataset_only: true
+  frozen_predictor_inference: true
+  new_simulator_calls: false
+  new_exact_planner_calls: false
+  new_transitions_or_episodes: false
+  model_fitting: false
+  hyperparameter_tuning: false
+  predictor_or_head_updates: false
+  student_closed_loop: false
+  dagger: false
+  world_model: false
+  jepa: false
+  test_data: false
+  reserve_access: false
+outputs:
+  lock: experiments/phase15_d157_score_correction.lock.json
+  run_dir: artifacts/runs/phase15_d157_score_correction_v1
+  report: reports/phase15_d157_score_correction_result.md
+statistics:
+  bootstrap_resamples: 10000
+  bootstrap_seed: 15715
+  confidence: 0.95

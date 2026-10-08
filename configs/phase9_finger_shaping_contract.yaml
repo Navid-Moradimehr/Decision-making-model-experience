@@ -1,0 +1,21 @@
+phase: 9
+experiment: finger_reward_shaping_contract_smoke
+scope: one_transition_reward_wiring_only_no_performance_evaluation
+environment: dm_control.suite.finger/turn_hard
+seed: 990613
+action: [0.0, 0.0]
+gamma: 0.99
+runtime:
+  python: "3.12.3"
+  dm_control: "1.0.47"
+  mujoco: "3.14.0"
+  gymnasium: "1.2.3"
+  numpy: "2.5.3"
+limits:
+  max_process_cpu_seconds: 60
+  max_wall_seconds: 30
+  max_generated_artifact_bytes: 1048576
+artifact_policy:
+  report_raw_or_shaped_rewards: false
+  report_observations_or_states: false
+  save_transitions: false

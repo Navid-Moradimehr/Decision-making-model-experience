@@ -1,0 +1,78 @@
+schema: phase24-search-budget-profile-v1
+status: design-frozen-pending-identity-audit-and-execution-lock
+protocol: reports/phase24_search_budget_profile_protocol.md
+parent:
+  phase23_lock: experiments/phase23_structured_screen_v1.lock.json
+  phase23_result: artifacts/runs/phase23_structured_screen_v1/rescored_result.json
+  phase23_manifest: artifacts/runs/phase23_structured_screen_v1/rescored_manifest.json
+  phase23_records: artifacts/runs/phase23_structured_screen_v1/episodes.jsonl
+block:
+  seed_start: 209000
+  layout_count: 500
+  replicas: [0, 1, 2]
+  reserve_half_open: [130000, 130200]
+  d168_half_open: [197000, 197100]
+  phase17_half_open: [201000, 201500]
+  phase18_half_open: [202000, 202500]
+  phase19_half_open: [203000, 203500]
+  phase20_half_open: [205000, 205500]
+  phase21_half_open: [206000, 206500]
+  phase22_half_open: [207000, 207500]
+  phase23_half_open: [208000, 208500]
+planning:
+  horizon: 8
+  budgets: [16, 24, 32, 48]
+  mandatory_constant_sequences: 9
+  proposal: phase20_shift_previous_winner
+  residual: exact_uniform_prefix
+  query_seed: phase17_query_seed
+  objective: frozen_phase11_lexicographic
+  tie_break: lexicographic_sequence
+  exact_unique_scoring_budget: true
+  execute_first_action_then_replan: true
+  terminal_budget: min(nominal_budget,9**remaining_horizon)
+  attempt_cap: 1280000
+analysis:
+  inferential_unit: layout_sha256
+  within_layout_replica_aggregation: arithmetic_mean
+  schedule_seed: 24002
+  paired_bootstrap_seed: 24003
+  bootstrap_draws: 10000
+  success_difference_one_sided_confidence: 0.9875
+  collision_difference_one_sided_confidence: 0.9875
+  adverse_layout_exact_one_sided_confidence: 0.9916666666666667
+  descriptive_interval_confidence: 0.95
+gates:
+  lower_budget:
+    safe_success_strictly_above: 0.90
+    collision_at_most: 0.05
+    timeout_exactly: 0
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    adjusted_success_difference_lower_vs_b32: -0.015
+    adjusted_collision_difference_upper_vs_b32: 0.015
+    success_regression_layout_event_upper_at_most: 0.05
+    added_collision_layout_event_upper_at_most: 0.05
+    mean_transition_ratio_vs_b32_at_most: 0.80
+    transition_ratio_95_upper_vs_b32_at_most: 0.85
+    median_latency_ratio_vs_b32_at_most: 0.85
+  b32_absolute:
+    safe_success_strictly_above: 0.90
+    collision_at_most: 0.05
+    timeout_exactly: 0
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+execution:
+  serial: true
+  append_only: true
+  interim_scoring: false
+  resume: false
+  torch_threads: 16
+scope:
+  training: false
+  learned_planner: false
+  adaptive_budget: false
+  reserve_test_d168_access: false
+outputs:
+  run_dir: artifacts/runs/phase24_search_budget_profile_v1
+  execution_lock: experiments/phase24_search_budget_profile_v1.lock.json

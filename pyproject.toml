@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "consequence-lab"
+version = "0.1.0"
+description = "Reproducible experiments on learned-model planning and bounded decision policies."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["numpy>=2.0,<3", "pyyaml>=6,<7"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+training = ["torch>=2.4,<3"]
+tworoom = [
+  "gymnasium>=1.0,<2",
+  "stable-worldmodel @ git+https://github.com/galilai-group/stable-worldmodel.git@63988116d34cde56aea1240d5e58eb158ac67dc0",
+]
+research = [
+  "torch>=2.4,<3",
+  "gymnasium>=1.0,<2",
+  "stable-worldmodel @ git+https://github.com/galilai-group/stable-worldmodel.git@63988116d34cde56aea1240d5e58eb158ac67dc0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

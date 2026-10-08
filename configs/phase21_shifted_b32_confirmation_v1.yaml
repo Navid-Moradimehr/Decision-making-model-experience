@@ -1,0 +1,105 @@
+schema: phase21-shifted-b32-confirmation-v1
+status: design-frozen-not-execution-locked
+authorization: existing_user_evidence_based_followup_authorization
+protocol: reports/phase21_shifted_b32_confirmation_protocol.md
+parent:
+  result: artifacts/runs/phase20_exact_plan_warmstart_v1/result.json
+  result_sha256: F0340FC52AB7297BF662221591A5BB1D9FBEBD6AA6513BBD3F7C848DDB4C98E3
+  lock: experiments/phase20_exact_plan_warmstart_v1.lock.json
+  lock_sha256: 6252126B47EB955A6A99B5EEEEEF388E5E5455C8F3D82B5F8024451BDF7B01A1
+scope:
+  training: false
+  learned_proposal: false
+  learned_world_model: false
+  dagger: false
+  standalone_student_control: false
+  reserve_test_d168_access: false
+  new_environment: false
+  adaptive_budget: false
+  exact_final_evaluation: true
+block:
+  proposed_seed_start: 206000
+  proposed_layout_count: 500
+  reserve_sealed_half_open: [130000, 130200]
+  d168_sealed_half_open: [197000, 197100]
+  phase17_consumed_half_open: [201000, 201500]
+  phase18_consumed_half_open: [202000, 202500]
+  phase19_consumed_half_open: [203000, 203500]
+  phase20_consumed_half_open: [205000, 205500]
+  replicas: [0, 1, 2]
+  episodes: 5000
+actions:
+  ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  vectors_source: consequence_lab.inertial_corridor.ACTION_VECTORS
+planning:
+  horizon: 8
+  nominal_budgets: [32, 48]
+  methods:
+    - {name: uniform_b32, kind: uniform, budget: 32, replicas: 3, warm_insertions: 0}
+    - {name: shifted_b32, kind: shift_previous_winner, budget: 32, replicas: 3, warm_insertions: 1}
+    - {name: uniform_b48, kind: uniform, budget: 48, replicas: 3, warm_insertions: 0}
+    - {name: geometry_waypoint, kind: geometry, budget: null, replicas: 1, warm_insertions: 0}
+  mandatory_constant_sequences: 9
+  mutation_count: 0
+  residual_sequences_remain_uniform: true
+  budget_counts_unique_exactly_scored_sequences: true
+  duplicate_warm_proposal_behavior: keep_uniform_sequence_and_count_overlap
+  remove_for_insertion: last_uniform_residual_candidate
+  warm_state_scope: same_episode_method_replica_only
+  first_decision: uniform_no_prior_plan
+  shifted_plan: previous_selected_sequence_drop_first_then_repeat_last_action_if_needed
+  mutation_seed_xor: 0x51A7E20D
+  query_seed_formula: (layout_seed*1000003+decision_index+replica*2654435769) mod 2^32
+  objective: frozen_phase11_lexicographic
+  tie_break: lexicographic_action_sequence
+  exact_rollout: true
+  execute_only_first_action_then_replan: true
+  terminal_budget: min(nominal_budget,9^remaining_horizon)
+  attempt_cap: 1280000
+geometry: {resolution: 0.04, waypoint_tolerance: 0.03}
+analysis:
+  sampling_unit: layout_sha256
+  replica_aggregation: average_three_within_layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 21003
+  order_seed: 21002
+  descriptive_confidence: 0.95
+  rare_event_one_sided_exact_confidence: 0.9916666666666667
+  success_one_sided_bootstrap_confidence: 0.9833333333333333
+  warmstart_attribution_confidence: 0.9875
+  transition_ratio: mean_of_per_layout_candidate_to_uniform_b48_ratios
+  latency_ratio: ratio_of_pooled_per_decision_medians_candidate_to_uniform_b48
+gates:
+  uniform_b48_reference:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_95_lower_strictly_above: 0.0
+  shifted_b32:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    adjusted_success_difference_lower_vs_b48_at_least: -0.05
+    success_regression_layout_event_upper_at_most: 0.05
+    added_collision_layout_event_upper_at_most: 0.05
+    mean_transition_ratio_vs_b48_at_most: 0.70
+    transition_ratio_95_upper_vs_b48_at_most: 0.80
+    median_latency_ratio_vs_b48_at_most: 0.75
+  attribution:
+    compare_shifted_with_uniform_b32: true
+    benefit_if_success_difference_adjusted_lower_above_zero_or_collision_difference_adjusted_upper_below_zero: true
+execution:
+  device: cpu
+  torch_threads: 16
+  serial: true
+  append_only: true
+  exact_global_and_local_prefix_resume: true
+  no_interim_scoring_or_extension: true
+  no_wall_clock_or_storage_cap: true
+outputs:
+  run_dir: artifacts/runs/phase21_shifted_b32_confirmation_v1
+  execution_lock: experiments/phase21_shifted_b32_confirmation_v1.lock.json
+  report: reports/phase21_shifted_b32_confirmation_result.md

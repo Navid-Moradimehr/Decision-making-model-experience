@@ -1,0 +1,75 @@
+phase: 14
+stage: phase14f_conditional_closed_loop_development
+schema: phase14f_closed_loop_config_v1
+status: protocol_frozen_after_phase14d_offline_gate_pass
+updated: 2026-09-29
+
+parent:
+  phase14d_config: configs/phase14d.yaml
+  phase14d_protocol: reports/phase14d_decision_function_generalization_protocol.md
+  phase14d_layout_audit: artifacts/runs/phase14d_layout_hash_audit_v2.json
+  phase14d_selection_lock: experiments/phase14d_model_selection_v2.lock.json
+  phase14d_offline_config: configs/phase14d_offline_gate.yaml
+  phase14d_offline_protocol: reports/phase14d_offline_gate_protocol.md
+  phase14d_offline_lock: experiments/phase14d_offline_gate_v2.lock.json
+  phase14d_offline_run_dir: artifacts/runs/phase14d_offline_gate_v2
+  phase14d_offline_report: reports/phase14d_offline_gate_v2_result.md
+  training_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  training_manifest: artifacts/runs/phase14b_training_labels_resume_v1/manifest.json
+  training_lock: experiments/phase14b_training_labels_resume_v1.lock.json
+  phase13a_report: reports/phase13a_baseline_headroom_result.md
+  phase13a_config: configs/phase13.yaml
+
+model:
+  artifact: experiments/phase14f_student_cart_v1.json
+  learner: decision_tree
+  feature_variant: raw52_plus_physics9
+  target_variant: within_state_normalized_regret9
+  fit_only_on: phase14b_training_records
+  fit_seed: 141400
+  action_selection: argmin_predicted_normalized_regret_lowest_action_id_tie_break
+  expected_nodes: 4153
+
+closed_loop:
+  seed_start: 192000
+  layout_count: 100
+  methods: [student, geometry_waypoint, random_shooting]
+  geometry: {route: A_star_from_initial_state, resolution: 0.04, waypoint_tolerance: 0.03}
+  exact_shooting: {horizon: 8, sequences: 128, proposal_seed: scenario_seed}
+  student_input: [student_input_52, physics9_derived_only_from_student_input_52]
+  no_model_selection_or_tuning: true
+
+reference_phase13a:
+  independent_layout_count: 100
+  exact_shooting_safe_success: 1.0
+  geometry_safe_success: 0.63
+  safe_success_gap: 0.37
+  report_is_historical_reference_only: true
+
+gate:
+  retain_fraction_of_phase13a_planner_minus_geometry_success_gap: 0.5
+  minimum_student_success_gain_over_geometry: 0.185
+  paired_student_minus_geometry_success_lower_95_strictly_positive: true
+  paired_student_minus_geometry_collision_upper_95_maximum: 0.02
+  student_median_decision_latency_maximum_fraction_of_exact_shooting: 0.5
+  bootstrap: {resamples: 10000, seed: 192011, confidence: 0.95, unit: layout_sha256}
+
+scope:
+  episodes: conditional_closed_loop_development_only
+  student_fit: training_split_only
+  offline_gate_reused_for_artifact_consistency_only: true
+  dagger: false
+  learned_world_model: false
+  reserve_access: false
+  final_reserve: {seed_start: 130000, count: 200, access: forbidden}
+
+resources:
+  wall_time_seconds: null
+  storage_bytes: null
+  note: user_removed_project_wide_wall_time_and_storage_caps_on_2026_09_29
+
+outputs:
+  model_freeze_manifest: experiments/phase14f_student_cart_v1.manifest.json
+  lock: experiments/phase14f_closed_loop_v1.lock.json
+  run_dir: artifacts/runs/phase14f_closed_loop_v1
+  report: reports/phase14f_closed_loop_v1_result.md

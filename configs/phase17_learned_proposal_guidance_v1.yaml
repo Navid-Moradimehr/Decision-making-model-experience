@@ -1,0 +1,224 @@
+schema: phase17-learned-proposal-guidance-v1
+status: locked_before_outcomes
+protocol: reports/phase17_learned_proposal_guidance_protocol.md
+parent_commit: cf24348be86864c5feda4d68841381b540c9caff
+
+parents:
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d168_training_replay: artifacts/runs/phase15_d168_latent_intervention_v1/training_trajectories.npz
+  phase16a_result: artifacts/runs/phase16_contract_repair_v1/result.json
+  phase16c_result: artifacts/runs/phase16c_prior_guided_planner_v1/result.json
+  phase16c_lock: experiments/phase16c_prior_guided_planner_v3.lock.json
+  phase16d_result: artifacts/runs/phase16d_planning_compute_frontier_v1/result.json
+  phase16d_lock: experiments/phase16d_planning_compute_frontier_v1.lock.json
+  phase16e_result: artifacts/runs/phase16e_budget_reliability_confirmation_v1/result.json
+  phase16e_lock: experiments/phase16e_budget_reliability_confirmation_v1.lock.json
+
+scope:
+  training_layouts_only: true
+  fresh_development_outcomes_only_after_immutable_lock: true
+  reserve_access: false
+  test_access: false
+  d168_block_access: false
+  dagger: false
+  learned_world_model: false
+  student_control: false
+  learned_action_execution: false
+
+training_data:
+  source_archive: artifacts/runs/phase15_d168_latent_intervention_v1/training_trajectories.npz
+  source_sha256: CC12FBB48D3021C25ABC043F09386F78D9D41CB12BD7D48BA3ED764C7ABB36BF
+  d153_parent_archive: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_parent_sha256: 6F78AB42EBC9EC3E26D957C95785F6A4A4D6991C6958D8D7B4513CBC0C7C0A52
+  d168_integrity_result: artifacts/runs/phase15_d168_latent_intervention_v1/g0_result.json
+  d168_integrity_result_sha256: 239EC44BC64681C68EFC91E100C73F1D2BA01BBA57B87D4894EAB2E6CABEB02D
+  source_states: 1365
+  source_layouts: 140
+  actions: 9
+  source_layout_split:
+    method: sort_layout_sha256_then_every_fifth_validation
+    validation_layouts: 28
+    fitting_layouts: 112
+  repeated_b64_searches_per_state: 32
+  teacher_replicates_fit: [0, 16]
+  teacher_replicates_holdout: [16, 32]
+  pilot:
+    unique_layouts: 64
+    states_per_layout: 1
+    repeats: 32
+    seed: 17001
+  state_parity_tolerance: 0.000001
+  velocity_rounding_policy: project_radially_to_max_if_normalized_excess_at_most_0.000001
+  source_split_unit: layout_sha256
+
+teacher:
+  exact_budget: 64
+  horizon: 8
+  objective: frozen_phase11_lexicographic
+  constant_action_sequences: always_include_all_nine
+  exact_candidate_tie_break: lexicographic_action_sequence
+  proposal_target: empirical_tie_mass_over_exact_best_sequences_by_first_action
+  hard_control: empirical_most_frequent_tie_mass_first_action
+  tie_target_rule: equal_mass_over_exactly_tied_best_sequences_per_search
+  query_seed_formula: (source_seed*1000003+decision_index+replica_id*2654435769) mod 2^32
+  replica_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  smoothing_for_pilot_nll: jeffreys_0.5_per_action
+  pilot_gate:
+    metric: heldout_multiclass_nll_improvement_vs_uniform
+    cluster_unit: layout_sha256
+    bootstrap_draws: 10000
+    bootstrap_seed: 17001
+    lower_95_ci_strictly_positive: true
+
+proposal_model:
+  primary_representation: d164_canonical_63
+  controls: [raw_r0_61_soft_distribution, canonical_63_hard_modal]
+  architecture: state_to_9way_mlp
+  hidden: [64, 64]
+  activation: relu
+  output: categorical_softmax_9
+  optimizer: AdamW
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  training: full_batch_soft_cross_entropy
+  max_epochs: 400
+  checkpoint: minimum_heldout_layout_nll
+  random_seed: 17002
+  device: cpu
+  deterministic: true
+  prior_not_execution_policy: true
+  deployment_output: first_action_proposal_probabilities_only
+  final_refit:
+    architecture: canonical_soft_unchanged
+    training_targets: repeats_0_15_tie_mass_all_140_layouts
+    normalization_source: frozen_canonical_soft_112_fit_layout_checkpoint
+    epochs: 69
+    random_seed: 17002
+    checkpoint_rule: fixed_epoch_no_validation_selection
+
+planning:
+  exact_dynamics: true
+  horizon: 8
+  budgets: [32, 64]
+  primary_budget: 32
+  reference_budget: 64
+  replicas: [0, 1, 2]
+  mandatory_constant_sequences: 9
+  stochastic_slots_at_b32: 23
+  guided_dimensions: first_action_only
+  suffix_actions: uniform
+  learned_mass_alpha_candidates: [0.25, 0.5, 0.75]
+  mixture_formula: alpha*q_theta+(1-alpha)/9
+  mixture_applies_to: stochastic_residual_slots_only
+  residual_uniform_mass_minimum: 0.25
+  unique_sequences: true
+  duplicate_policy: rejection_then_frozen_uniform_fallback
+  exact_scoring: phase11_frozen_objective
+  exact_tie_break: lexicographic_action_sequence
+  execute: selected_sequence_first_action_then_replan
+  paired_random_streams: true
+
+development_selection:
+  input_states: all_d153_training_rows_on_28_layout_holdout
+  arms: [uniform_b32, guided_b32_alpha_0_25, guided_b32_alpha_0_50, guided_b32_alpha_0_75]
+  primary_metric: layout_macro_fraction_with_any_complete_safe_success_sequence
+  tie_break_1: lower_collision_terminal_candidate_fraction
+  tie_break_2: smaller_alpha
+  advancement_gate:
+    selected_alpha_success_availability_strictly_above_uniform: true
+    selected_alpha_collision_candidate_fraction_at_most_uniform: true
+    inference: descriptive_internal_screen_only
+    fresh_confirmation_required: true
+  no_fresh_layout_tuning: true
+
+fresh_evaluation:
+  proposed_seed_start: 201000
+  proposed_layout_count: 500
+  selected_alpha: 0.25
+  hash_audit_required: true
+  methods:
+    - {name: uniform_b32, budget: 32, replicas: 3}
+    - {name: guided_b32, budget: 32, replicas: 3}
+    - {name: uniform_b64, budget: 64, replicas: 3}
+    - {name: geometry_waypoint, budget: null, replicas: 1}
+  total_episodes: 5000
+  paired_layout_unit: layout_sha256
+  order_counterbalance_seed: 17003
+  replica_seed_stride: 2654435769
+  reserve_block_sealed: [130000, 130200]
+  d168_block_sealed: [197000, 197100]
+
+geometry:
+  resolution: 0.04
+  waypoint_tolerance: 0.03
+
+execution:
+  device: cpu
+  parallel_episodes: false
+  append_only_progress: true
+  resume_only_under_same_immutable_lock: true
+  expected_unique_episode_count: 5000
+
+analysis:
+  bootstrap_draws: 10000
+  bootstrap_seed: 17003
+  paired_unit: layout_sha256
+  average_replicas_within_layout: true
+  success_difference_lower_bound: one_sided_97_5_percent
+  rare_event_upper_bound: one_sided_exact_clopper_pearson_98_75_percent
+  primary_metrics:
+    - safe_success
+    - collision
+    - timeout
+    - paired_success_difference_vs_b64
+    - success_regression_layout_events_vs_b64
+    - added_collision_layout_events_vs_b64
+    - exact_transitions
+    - median_decision_latency
+  descriptive_metrics:
+    - p90_decision_latency
+    - candidate_success_availability_per_decision
+    - first_success_sequence_rank
+    - collision_terminal_candidate_fraction
+    - proposal_entropy_and_mean_action_probabilities
+    - residual_first_action_diversity_excluding_mandatory_constants
+    - duplicate_rejections
+    - sampled_and_selected_action_distributions
+    - canonical_novelty_strata
+
+gates:
+  b64_reference:
+    mean_success_strictly_above: 0.90
+    mean_collision_at_most: 0.05
+    every_replica_success_at_least: 0.85
+    every_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_ci_lower_above: 0.0
+  guided_b32:
+    mean_success_strictly_above: 0.90
+    every_replica_success_at_least: 0.85
+    mean_collision_at_most: 0.05
+    every_replica_collision_at_most: 0.10
+    paired_success_difference_lower_vs_b64_at_least: -0.05
+    success_regression_upper_vs_b64_at_most: 0.05
+    added_collision_upper_vs_b64_at_most: 0.05
+    mean_transition_ratio_vs_b64_at_most: 0.70
+    transition_ratio_ci_upper_vs_b64_at_most: 0.75
+    median_latency_ratio_vs_b64_at_most: 0.70
+    rescue_claim_requires_uniform_b32_to_fail_rare_event_gate: true
+
+outputs:
+  run_dir: artifacts/runs/phase17_learned_proposal_guidance_v1
+  fresh_layout_audit: artifacts/runs/phase17_learned_proposal_guidance_v1/fresh_layout_audit.json
+  fresh_run_dir: artifacts/runs/phase17c_exact_guided_planner_v2
+  fresh_execution_order: artifacts/runs/phase17c_exact_guided_planner_v2/execution_order.json
+  fresh_episodes: artifacts/runs/phase17c_exact_guided_planner_v2/episodes.jsonl
+  fresh_result: artifacts/runs/phase17c_exact_guided_planner_v2/result.json
+  fresh_manifest: artifacts/runs/phase17c_exact_guided_planner_v2/manifest.json
+  teacher_queries: artifacts/runs/phase17_learned_proposal_guidance_v1/teacher_queries.jsonl
+  teacher_summary: artifacts/runs/phase17_learned_proposal_guidance_v1/teacher_summary.json
+  proposal_checkpoint: artifacts/runs/phase17_learned_proposal_guidance_v1/canonical_soft_proposal.pt
+  final_fit_manifest: artifacts/runs/phase17_learned_proposal_guidance_v1/final_proposal_fit.json
+  episodes: artifacts/runs/phase17_learned_proposal_guidance_v1/episodes.jsonl
+  result: artifacts/runs/phase17_learned_proposal_guidance_v1/result.json
+  manifest: artifacts/runs/phase17_learned_proposal_guidance_v1/manifest.json

@@ -1,0 +1,113 @@
+schema: phase15_d162_fresh_layout_relational_v1
+status: protocol_defined_not_executed
+protocol: reports/phase15_d162_fresh_layout_relational_protocol.md
+question: Do imperfect predicted outcome+steps consequences improve relational action selection on unseen Inertial Corridor layouts?
+candidate_layout_block:
+  seed_start: 196000
+  layout_count: 100
+  status: candidate_only_pending_hash_audit
+  previously_consumed_or_excluded_ranges:
+    - {start: 190000, count: 100, label: D153 model training}
+    - {start: 191000, count: 80, label: D153 model selection}
+    - {start: 192000, count: 100, label: Phase 13 development}
+    - {start: 193000, count: 100, label: Phase 14G traces}
+    - {start: 194000, count: 140, label: D153 fresh training layouts}
+    - {start: 195000, count: 100, label: D157 fresh-layout screen}
+    - {start: 130000, count: 200, label: sealed reserve}
+  audit_required_before_lock: true
+parents:
+  d161_lock: experiments/phase15_d161_fit_boundary.lock.json
+  d161_result: artifacts/runs/phase15_d161_fit_boundary_v1/result.json
+  d161_manifest: artifacts/runs/phase15_d161_fit_boundary_v1/manifest.json
+  d161_report: reports/phase15_d161_result.md
+  d153_training_rows: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_config: configs/phase15_d153_coverage_scaling_v3.yaml
+  d153_lock: experiments/phase15_d153_coverage_scaling_v3.lock.json
+  d155_stage_c_config: configs/phase15_d155_stage_c.yaml
+  d158_source: src/consequence_lab/phase15_d158.py
+  d157_collector_source: src/consequence_lab/phase15_d157.py
+  collector_policy: experiments/phase14f_student_cart_v1.json
+  collector_manifest: experiments/phase14f_student_cart_v1.manifest.json
+  teacher_source: src/consequence_lab/phase14g.py
+  environment_source: src/consequence_lab/inertial_corridor.py
+frozen_models:
+  training_corpus_rows: 1365
+  training_corpus_layouts: 140
+  width: 64
+  representations:
+    - r0_action_only
+    - r0_action_predicted_outcome_steps
+    - r0_action_exact_outcome_steps_oracle
+  checkpoint_paths:
+    r0_action_only: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_only_best_training_objective.npz
+    r0_action_predicted_outcome_steps: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_predicted_outcome_steps_best_training_objective.npz
+    r0_action_exact_outcome_steps_oracle: artifacts/runs/phase15_d161_fit_boundary_v1/width_64/r0_action_exact_outcome_steps_oracle_best_training_objective.npz
+  checkpoint_hashes_from_D161_manifest_required: true
+  model_updates: false
+consequence_predictor:
+  source: D161 five-fold layout-cross-fitted CART outcome+steps predictor
+  training_data: D153 training corpus only
+  training_rows: 1365
+  training_layouts: 140
+  fold_count: 5
+  fold_assignment: sha256_layout_hex_prefix_integer_mod_5
+  model_family_config: configs/phase15_d155_stage_c.yaml
+  model_settings:
+    max_depth: 4
+    min_samples_leaf: 64
+    candidate_quantiles: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    classification_impurity: gini
+    regression_impurity: squared_error
+  fresh_layout_fold_routing: same_fold_assignment_as_training_crossfit
+  fit_on_fresh_layouts: false
+  save_and_hash_rebuilt_fold_models: true
+teacher_and_collection:
+  collector: frozen Phase14F CART
+  episodes_per_layout: 1
+  collection_rule: replicate_D153_and_D157_state_collection
+  at_each_active_state: record_deployable_R0_then_evaluate_all_9_forced_first_actions
+  teacher: exact_forced_first_action_then_frozen_receding_horizon_shooting_continuation
+  continue_each_branch: until_success_collision_timeout_or_frozen_terminal_condition
+  collector_action: advance_only_the_state_collection_trajectory
+  student_inputs_exclude: [exact_future, exact_cost, teacher_regret, branch_terminal_state]
+  exact_R4: oracle_diagnostic_only
+  closed_loop_use_of_D161_students: false
+evaluation:
+  unit: layout_hash
+  candidate_count: 9
+  fixed_states_across_models: true
+  metrics:
+    primary: [layout_macro_normalized_selected_regret, catastrophic_fraction_layout_macro]
+    secondary: [epsilon_optimal_rate, best_action_set_agreement, high_margin_pairwise_accuracy, safe_vs_collision_pair_accuracy, collision_action_selection_rate, action_frequency]
+    runtime: [median_decision_latency_ms, p95_decision_latency_ms]
+  predicted_runtime_path: one_hash_routed_crossfit_CART_predictor_plus_relational_scorer
+  thresholds:
+    catastrophic_regret: 0.5
+    epsilon_optimal_regret: 0.125
+    high_margin_pair_regret_gap: 0.25
+  statistics:
+    method: paired_layout_bootstrap
+    resamples: 10000
+    seed: 16215
+    confidence: 0.95
+    positive_difference_direction: R0_metric_minus_comparator_metric
+  material_predicted_consequence_gate:
+    minimum_absolute_improvement_on_each_primary_metric: 0.02
+    paired_95_percent_interval_lower_bound_above_zero_on_each_primary_metric: true
+    comparator: r0_action_only
+  oracle_headroom_check:
+    paired_95_percent_interval_lower_bound_above_zero_on_each_primary_metric: true
+    comparator: r0_action_only
+scope:
+  training_rows_only_for_predictor_reconstruction: true
+  fresh_layout_development_scoring: true
+  final_test_or_reserve: false
+  closed_loop_student_control: false
+  DAgger: false
+  world_model_or_JEPA_training: false
+  model_tuning_or_checkpoint_selection_on_fresh_layouts: false
+  new_environment: false
+outputs:
+  run_dir: artifacts/runs/phase15_d162_fresh_layout_relational_v1
+  report: reports/phase15_d162_result.md
+  lock: experiments/phase15_d162_fresh_layout_relational.lock.json

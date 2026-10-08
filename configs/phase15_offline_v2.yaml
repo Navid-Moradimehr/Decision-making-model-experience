@@ -1,0 +1,93 @@
+schema: phase15_offline_run_config_v2
+status: authorized_offline_diagnosis_pending_lock
+phase: 15
+run_id: phase15_offline_v2
+amendment: corrected_pairwise_tie_mask_and_all_tied_behavior_after_v1_software_failure
+
+parents:
+  phase14g_lock: experiments/phase14g_trace_v1.lock.json
+  phase14g_manifest: artifacts/runs/phase14g_trace_v1/manifest.json
+  phase14g_traces: artifacts/runs/phase14g_trace_v1/student_decisions.jsonl
+  phase14g_episodes: artifacts/runs/phase14g_trace_v1/episodes.jsonl
+  phase14g_metrics: artifacts/runs/phase14g_trace_v1/metrics.json
+  phase14f_student: experiments/phase14f_student_cart_v1.json
+  phase14b_records: artifacts/runs/phase14b_training_labels_resume_v1/first_action_values_complete.jsonl
+  phase15_v1_feature_dataset: artifacts/runs/phase15_offline_v1/features/phase15_features.npz
+  phase15_v1_feature_manifest: artifacts/runs/phase15_offline_v1/features/manifest.json
+  phase15_v1_lock: experiments/phase15_offline_v1.lock.json
+  phase15_v1_failure_record: artifacts/runs/phase15_offline_v1/failure.json
+
+split:
+  scheme: sha256_layout_group_phase15_v1
+  test_layouts: 20
+  validation_layouts: 20
+  train_layouts: 60
+  salt: "phase15-layout-split-v1:"
+
+features:
+  representations: [R0, R1, R2, R3, R4]
+  r2_horizon: 4
+  action_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  r0: current 52 deployable values plus the frozen 9 physics features
+  r1: r0 plus nine saved exact one-step consequence blocks
+  r2: r0 plus nine four-step same-action pulse blocks (three new transitions max per branch)
+  r3: r0 plus nine compact pulse-summary blocks
+  r4: r0 plus saved exact teacher continuation outcome/terminal summary; oracle only
+
+training:
+  seed: 15015
+  hidden: [32, 32]
+  max_epochs: 1200
+  patience: 100
+  learning_rate: 0.002
+  l2: 0.00001
+  objectives: [regression, pairwise, weighted_pairwise]
+  pairwise_ties: per_state_exact_equal_regret_pairs_excluded
+  weighted_pairwise_weight: absolute_within_state_regret_gap_normalized_to_unit_sum_per_state
+  target: saved_normalized_rank_regret_over_nine_forced_actions
+  model_selection: minimum_layout_macro_validation_regret_then_loss_tiebreak
+  train_layout_weighting: equal_total_weight_per_layout
+  memorization_rungs: [1, 8, 32, one_layout, full_train]
+  memorization_minimum_best_action_agreement: 0.99
+  memorization_maximum_mean_decision_regret: 0.01
+  source_comparison_sample: deterministic_layout_round_robin_matched_to_student_train_count
+  cart_diagnostics: [R0, R3]
+  bootstrap:
+    resamples: 10000
+    seed: 150151
+    confidence: 0.95
+
+metrics:
+  catastrophic_regret_threshold: 0.5
+  layout_macro_primary: [mean_normalized_regret, catastrophic_fraction]
+  report: [best_action_set_agreement, pairwise_ranking, regret_gap_weighted_pairwise_ranking, action_frequency, latency, parameter_count]
+
+gate:
+  only_r0_can_be_proposed_for_live_protocol: true
+  mean_regret_absolute_improvement_over_frozen_cart: 0.10
+  paired_bootstrap_lower_95_improvement: 0.0
+  catastrophic_fraction_maximum: 0.25
+  catastrophic_fraction_absolute_improvement_over_frozen_cart: 0.15
+  best_action_set_agreement_minimum: 0.50
+  passing_only_allows_drafting_separate_live_protocol: true
+
+scope:
+  saved_phase14g_data_only: true
+  build_features_from_saved_states: false
+  reuse_phase15_v1_features_only_if_hashes_match: true
+  fit_offline_models: true
+  heldout_diagnostic_layouts: true
+  new_episodes: false
+  rerun_phase14g: false
+  regenerate_exact_continuation_labels: false
+  exact_planner_calls: false
+  closed_loop_evaluation: false
+  dagger: false
+  learned_world_model: false
+  representation_distillation: false
+  reserve_access: false
+
+outputs:
+  run_dir: artifacts/runs/phase15_offline_v2
+  feature_dir: features
+  report: reports/phase15_offline_v2_result.md

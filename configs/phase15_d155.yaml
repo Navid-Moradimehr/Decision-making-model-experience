@@ -1,0 +1,102 @@
+schema: phase15_d155_minimal_consequence
+status: locked_stage_a_with_conditional_stage_c
+protocol: reports/phase15_d155_protocol.md
+parents:
+  d154_training_lock: experiments/phase15_d154_decision_aligned_v2.lock.json
+  d154_result_lock: experiments/phase15_d154_finalize_v3.lock.json
+  d154_result: artifacts/runs/phase15_d154_finalize_v3/result.json
+  d154_manifest: artifacts/runs/phase15_d154_finalize_v3/manifest.json
+  d152_features: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+  d152_manifest: artifacts/runs/phase15_representation_sufficiency_v1/manifest.json
+  d152_result: artifacts/runs/phase15_representation_sufficiency_v1/result.json
+  d153_corpus: artifacts/runs/phase15_d153_coverage_scaling_v1/fresh_training_rows.npz
+  d153_manifest: artifacts/runs/phase15_d153_coverage_scaling_v3/manifest.json
+  d153_result: artifacts/runs/phase15_d153_coverage_scaling_v3/result.json
+  d150_r0_checkpoint: artifacts/runs/phase15_representation_screen_v1/R0_checkpoint.npz
+  d150_r4_checkpoint: artifacts/runs/phase15_representation_screen_v1/R4_checkpoint.npz
+split:
+  train_rows: 1936
+  train_layouts: 200
+  validation_rows: 202
+  validation_layouts: 20
+  validation_layouts_sha256: 8B14D46BE6EF7C62150D0D584F1D171A33AC7BAF3E8A58991F97BA98980863EB
+  validation_reused: true
+  test_or_reserve_access: false
+schema_contract:
+  r0_dimensions: 61
+  r4_dimensions: 124
+  actions_per_state: 9
+  action_vectors: [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]
+  summary_per_action: [success, active, timeout, collision, terminal_steps, terminal_goal_distance, noncoast_effort]
+  terminal_outcomes_only: [success, timeout, collision]
+feature_sets:
+  - {id: F0_R0, groups: [], dimension: 61}
+  - {id: F_outcome, groups: [outcome], dimension: 97}
+  - {id: F_steps, groups: [steps], dimension: 70}
+  - {id: F_goal_distance, groups: [goal_distance], dimension: 70}
+  - {id: F_effort, groups: [effort], dimension: 70}
+  - {id: F_outcome_steps, groups: [outcome, steps], dimension: 106}
+  - {id: F_outcome_steps_distance, groups: [outcome, steps, goal_distance], dimension: 115}
+  - {id: F_full, groups: [outcome, steps, goal_distance, effort], dimension: 124}
+stage_a:
+  method: same_listwise_decision_mlp_retrained_per_feature_set
+  hidden: [32, 32]
+  seed: 15501
+  target: exact_phase14_normalized_average_rank_regret
+  listwise_temperature: 0.25
+  optimizer: full_batch_adam
+  learning_rate: 0.002
+  l2: 0.00001
+  max_epochs: 1200
+  patience: 100
+  layout_balanced_weights: true
+  checkpoint: minimum_validation_layout_macro_regret_then_listwise_loss
+  standardization: train_only
+  memorization:
+    states: 8
+    minimum_best_action_agreement: 0.99
+    maximum_selected_regret: 0.01
+stage_c_gate:
+  exact_full_controlled_model_min_recovered_fraction: 0.70
+  compact_subset_min_recovered_fraction: 0.70
+  maximum_catastrophic_fraction: 0.15
+  full_feature_dimension: 124
+  compact_means_feature_dimension_lt: 124
+  subset_selection: fewest_added_consequence_dimensions_then_macro_regret_then_catastrophic_fraction
+  execute_automatically: false
+  requires_separate_stage_c_lock: true
+stage_c_conditional_plan:
+  input: [R0_61, primitive_action_onehot_9]
+  models: [per_action_constant, bounded_CART, small_action_conditioned_MLP]
+  outcome_classes: [success, timeout, collision]
+  outcome_loss: categorical_cross_entropy
+  continuous_loss: normalized_MSE_per_component
+  mlp: {hidden: [32, 32], seed: 15551, learning_rate: 0.002, l2: 0.00001, max_epochs: 1000, patience: 100}
+  downstream_evaluation: predicted_subset_through_fitted_stage_a_decision_head
+metrics:
+  catastrophic_regret_threshold: 0.5
+  epsilon_optimal_regret_threshold: 0.125
+  high_margin_pair_gap_threshold: 0.25
+  safe_action_regret_at_most: 0.125
+  catastrophic_action_regret_at_least: 0.5
+  feature_recovery_fraction: frozen_r0_to_frozen_exact_r4_macro_regret_gap
+reference_parity_tolerance: 1.0e-10
+scope:
+  train_and_reused_validation_only: true
+  exact_r4_is_privileged_diagnostic: true
+  simulator_calls: false
+  planner_calls: false
+  new_transitions: false
+  new_episodes: false
+  student_controlled_simulation: false
+  dagger: false
+  closed_loop: false
+  world_model: false
+  jepa: false
+  representation_distillation: false
+  test_rows_scored: false
+  reserve_access: false
+outputs:
+  lock: experiments/phase15_d155.lock.json
+  run_dir: artifacts/runs/phase15_d155_stage_a_v1
+  report: reports/phase15_d155_stage_a_result.md

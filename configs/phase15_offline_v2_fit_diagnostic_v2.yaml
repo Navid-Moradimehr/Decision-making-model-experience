@@ -1,0 +1,54 @@
+schema: phase15_v2_failed_cell_replay_v2
+status: authorized_single_diagnostic_replay_after_preflight_fix
+run_id: phase15_offline_v2_fit_diagnostic_v2
+parent:
+  config: configs/phase15_offline_v2.yaml
+  lock: experiments/phase15_offline_v2.lock.json
+  result: artifacts/runs/phase15_offline_v2/result.json
+  result_manifest: artifacts/runs/phase15_offline_v2/manifest.json
+  feature_manifest: artifacts/runs/phase15_offline_v2/features/manifest.json
+  feature_dataset: artifacts/runs/phase15_offline_v2/features/phase15_features.npz
+cell:
+  rung: 32
+  representation: R0
+  objective: regression
+  row_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 58]
+  source_input_dtype: float32
+  source_input_sha256: AECE48C1A055078D51A4252FCB187BD019C8FDEC980C1425CD712BEA039853A4
+  fit_input_dtype: float64
+  fit_input_sha256: B38F4909252F6F2036C4B15A040974F8EE40E42ABE53094270BDB1560CCB6028
+  source_target_dtype: float32
+  source_target_sha256: 9628CC2356C52FB4EE3554716C99DB4085B8200093383ADACCBDB56E37294045
+  fit_target_dtype: float64
+  fit_target_sha256: 6A90D24FF22AD408181F957AD2E1587537A33E67D01E3EB419D200F7E49502BF
+training:
+  seed: 15015
+  hidden: [32, 32]
+  max_epochs: 1200
+  patience: 100
+  learning_rate: 0.002
+  l2: 0.00001
+  layout_weighting: equal_total_weight_per_layout
+  model_selection: minimum_regret_then_validation_loss
+expected_original:
+  best_epoch: 1200
+  best_action_set_agreement: 0.96875
+  mean_normalized_regret_state_micro: 0.00390625
+resource_caps:
+  wall_seconds: 10800
+  output_bytes: 20971520
+scope:
+  exact_parent_cell_only: true
+  reuse_saved_phase14g_features_only: true
+  compute_heldout_metrics: false
+  heldout_rows_for_model_selection: false
+  new_transitions: false
+  new_episodes: false
+  exact_planner_calls: false
+  closed_loop: false
+  dagger: false
+  world_model: false
+  reserve_access: false
+outputs:
+  run_dir: artifacts/runs/phase15_offline_v2_fit_diagnostic_v2
+  report: reports/phase15_offline_v2_fit_diagnostic_v2_result.md

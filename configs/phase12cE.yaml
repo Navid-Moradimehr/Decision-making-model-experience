@@ -1,0 +1,100 @@
+phase: 12c-E
+status: user-approved-matched-representation-comparison
+date: "2026-09-28"
+
+question: >-
+  Does an invertible agent-relative encoding of the public goal/obstacle geometry
+  improve layout-generalization of a bounded candidate preference policy when
+  training states, targets, model capacity, and optimizer are matched?
+
+training_source:
+  archived_dataset: artifacts/runs/phase12cC_archived_training_v1
+  expected_manifest_sha256: 9582D657F341B001C6D4177BD50EF8F620D0DC92C58238FEA146598763444A66
+  query_count: 2828
+  layout_count: 160
+  fit_all_layouts: true
+  target_banks: [0, 1, 2, 3, 4, 5]
+  diagnostic_banks: [6, 7, 8, 9, 10, 11]
+
+seed_splits:
+  model_selection: {start: 181000, count: 40}
+  offline_gate: {start: 181040, count: 40}
+  conditional_D2_not_repurposed: {start: 180000, count: 80}
+  development_not_authorized: {start: 143000, count: 40}
+  dagger_not_authorized: {start: 142000, count: 120}
+  final_reserve_sealed: {start: 130000, count: 200}
+  audit_output: artifacts/runs/phase12cE_layout_audit_v2.json
+  replay_output: artifacts/runs/phase12cE_replay_parity_v2.json
+  selection_output: artifacts/runs/phase12cE_model_selection_v1
+  gate_output: artifacts/runs/phase12cE_offline_gate_v1
+  training_output: artifacts/runs/phase12cE_training_v1
+  selected_model_lock: artifacts/runs/phase12cE_training_v1/selected_models.lock.json
+
+trajectory_collection:
+  source_config: configs/phase12_teacher_student.yaml
+  source_lock: experiments/phase12_teacher_data.lock.json
+  policy: exact_phase12_random_shooting_receding_horizon
+  horizon: 8
+  candidate_sequences: 128
+  action_choice: first_action_of_exact_lexicographic_best_sequence
+  target_bank_count: 12
+  suffixes_per_action: 14
+  bank_master_seed: 2026092851
+  collect_gate_only_after_selected_model_lock: true
+  save_teacher_trajectory_outcome: false
+  save_candidate_future_states: false
+
+student:
+  runtime_inputs: [public_numeric_state_52, nine_legal_first_action_ids]
+  forbidden_inputs: [teacher_costs, rankings, bank_ids, future_states, seed, privileged_state]
+  architecture: shared_pointwise_state_action_candidate_mlp
+  hidden_state: 128
+  embedding: 64
+  parameter_count: 32705
+  variants: [absolute, agent_relative]
+  policy_target: tie_split_optimal_mass_mean_over_banks_0_to_5
+  loss: layout_weighted_soft_cross_entropy
+  optimizer: AdamW
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  batch_decision_sets: 32
+  max_epochs: 120
+  early_stopping_patience: 15
+  gradient_norm_clip: 1.0
+  fit_seeds: [1431, 1432, 1433]
+  select: minimum_selection_layout_macro_regret_then_seed_then_epoch
+  normalization: train_archive_mean_std_per_representation
+  std_floor: 1.0e-6
+  max_parameters: 100000
+  candidate_permutation:
+    permutations_per_fixture: 100
+    probability_deviation_max: 1.0e-6
+    semantic_flips_max: 0
+
+evaluation:
+  primary: layout_macro_selected_action_normalized_rank_regret
+  heldout_banks: [6, 7, 8, 9, 10, 11]
+  unit: layout_sha256
+  bootstrap: {resamples: 10000, seed: 185001, confidence: 0.95, method: paired_layout_percentile}
+  baselines: [constant_coast, geometry_waypoint]
+  advancement:
+    minimum_mean_regret_improvement_relative_over_absolute: 0.05
+    paired_95_lower_relative_over_absolute: 0.0
+    mean_regret_improvement_relative_over_geometry: 0.0
+    paired_95_lower_relative_over_geometry: 0.0
+    permutation_checks_must_pass: true
+
+resources:
+  device: cpu
+  fixed_runtime_cap_seconds: null
+  generated_artifact_cap_bytes: 104857600
+
+execution:
+  overwrite_forbidden: true
+  require_clean_git_at_lock: true
+  selection_confirmation: RUN_PHASE12CE_SELECTION_ONLY
+  gate_confirmation: RUN_PHASE12CE_OFFLINE_GATE_ONLY
+  reserve_access: false
+  closed_loop_development: false
+  dagger: false
+  learned_world_model: false

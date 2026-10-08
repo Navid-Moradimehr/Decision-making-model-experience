@@ -1,0 +1,51 @@
+schema: phase26-search-feedback-audit-v1
+status: frozen-exploratory-offline
+protocol: reports/phase26_search_feedback_protocol.md
+parents:
+  phase24:
+    lock: experiments/phase24_search_budget_profile_v1.lock.json
+    lock_sha256: 803339312E11D94D1944233D53946F8BA00F232E5C5B80A321DF71E3EAA49D4E
+    records: artifacts/runs/phase24_search_budget_profile_v1/episodes.jsonl
+    records_sha256: 8C3610927622B68FF1C0FEECb992F4344C3C1D863B6BE085CDA08A12528E32CE
+    result: artifacts/runs/phase24_search_budget_profile_v1/rescored_result.json
+    result_sha256: 7861FA47B83C226AFCAECC048082E7D2CD37E06034F38056BF30D7638E9E8F64
+    run_manifest: artifacts/runs/phase24_search_budget_profile_v1/run_manifest.json
+    run_manifest_sha256: 65AC1E5310A48A2FC997DBDF2DA45C3F5DA3EF5924FB18EE62669714D836E0B6
+    score_manifest: artifacts/runs/phase24_search_budget_profile_v1/rescored_manifest.json
+    score_manifest_sha256: 56F772BC9FA32777DEF22711FD2FC8D7925E56FCEBBC5C6FA9FBA353594C7BBC
+  phase25:
+    lock: experiments/phase25_b24_confirmation_v1.lock.json
+    lock_sha256: 17A446C786E9F07A3872184A2347D0B1A51D47A3A6F3FE80171DBCDEAEA0C1CC
+    records: artifacts/runs/phase25_b24_confirmation_v1/episodes.jsonl
+    records_sha256: EA3A641D000760DD158115077EA9A5BF2252599C27E30D466D0A506EEADB6461
+    result: artifacts/runs/phase25_b24_confirmation_v1/result.json
+    result_sha256: 5B4AA5A85B4E55F372C121721FB0B2CDA3AF2F561BFFBB78068A6897209CD810
+    run_manifest: artifacts/runs/phase25_b24_confirmation_v1/run_manifest.json
+    run_manifest_sha256: CD3896A350C3149300C6DD9ED9549DFF9C321121354C45A28DD591B9E8ECBFBF
+    score_manifest: artifacts/runs/phase25_b24_confirmation_v1/result_manifest.json
+    score_manifest_sha256: 6471AE6B9E856F0FDB4573BDC1C47513BF3B9AA8ACE3E22B9867ED29CE5DAAE0
+analysis:
+  budget_prefix: 24
+  extended_budget: 32
+  replicas: [0, 1, 2]
+  folds: 5
+  ridge_l2: 1.0
+  probability_clip: 0.000001
+  bootstrap_draws: 10000
+  bootstrap_seed: 26001
+  features:
+    state: state_raw52
+    prior_plan: previous_plan
+    candidate_summaries: [category_counts, best_category, best_objective_second, same_category_gap,
+      tie_count, unique_first_actions, first_action_entropy]
+  targets: [strict_objective_improvement, outcome_category_improvement, newly_available_success_candidate]
+scope:
+  simulator_calls: false
+  candidate_evaluations: false
+  diagnostic_model_fit: true
+  adaptive_planner: false
+  reserve_test_d168_access: false
+  closed_loop: false
+outputs:
+  run_dir: artifacts/runs/phase26_search_feedback_v2
+  execution_lock: experiments/phase26_search_feedback_v2.lock.json

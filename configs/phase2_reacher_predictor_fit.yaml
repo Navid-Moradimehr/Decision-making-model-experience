@@ -1,0 +1,104 @@
+project:
+  name: consequence-lab
+  phase: phase2_reacher_predictor_fit
+  status: preregistered_predictor_development
+  max_gpu_hours: 0
+  encoder_frozen: true
+  lewm_frozen: true
+  student_training_authorized: false
+  teacher_generation_authorized: false
+
+source:
+  stable_worldmodel_revision: 63988116d34cde56aea1240d5e58eb158ac67dc0
+  lewm_source_revision: 8edfeb336732b5f3ce7b8b210d0ba370a09e2cac
+  checkpoint_revision: 62adae4b71dc474ddf8f794c476ebfe737a743ca
+  checkpoint_sha256: eb70b1fd5409f8f81875d62f5ee5a20dd220a3128a477de66b5760f475f0f469
+  checkpoint_config_sha256: 2564086e961e7b5c7c04dffc451091115b389a590645ff19653c64fd0bc16e09
+
+environment:
+  id: swm/ReacherDMControl-v0
+  task: qpos_match
+  seed_range_convention: half_open
+  train_episode_seeds: [230000, 230080]
+  validation_episode_seeds: [230080, 230100]
+  test_episode_seeds: [230100, 230120]
+  candidates_per_train_or_validation_seed: 32
+  train_validation_uniform_count_per_seed: 16
+  train_validation_perturbation_count_per_seed: 16
+  test_uniform_count_per_seed: 64
+  test_perturbation_count_per_seed: 64
+  goal_generation: 25_uniform_bounded_actions_from_start_with_sentinel_target
+  goal_action_seed_offset: 10000
+  sentinel_qpos_offset: [100.0, 100.0]
+  action_horizon_env_steps: 25
+  input_action_bounds: [-1.0, 1.0]
+
+data:
+  candidate_generation_seed_offsets:
+    uniform_random: 20000
+    reference_perturbation: 30000
+  reference_perturbation_std: 0.15
+  group_inputs: [start_image_latent, flattened_25x2_action_sequence]
+  target: realized_final_image_latent_minus_start_image_latent
+  image_encoder_frozen: true
+  split_unit: complete_episode_seed
+
+predictors:
+  persistence:
+    method: predict_start_latent_as_endpoint
+  ridge:
+    method: standardized_linear_regression_on_latent_delta
+    l2_regularization: 1.0
+  mlp:
+    method: predict_standardized_latent_delta
+    hidden_dimensions: [256, 256]
+    activation: relu
+    optimizer: adamw
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    batch_size: 128
+    max_epochs: 100
+    early_stopping_metric: validation_latent_mse
+    patience_epochs: 12
+    minimum_delta: 0.00001
+    seed: 404001
+  native_lewm:
+    method: frozen_pinned_autoregressive_predictor
+
+evaluation:
+  compare_on_identical_test_candidate_banks: true
+  metrics:
+    - endpoint_latent_coordinate_rmse
+    - endpoint_latent_cosine_similarity
+    - predicted_vs_realized_latent_cost_pairwise_accuracy
+    - predicted_latent_goal_cost_vs_qpos_cost_pairwise_accuracy
+    - candidate_success_fraction
+    - candidate_availability
+  physical_cost: mean_absolute_terminal_qpos_error_divided_by_2pi
+  success: every_joint_absolute_qpos_error_below_0.05_radians
+  physical_cost_tie_tolerance: 0.0025
+  latent_cost_tie_tolerance: 0.000001
+  bootstrap_unit: episode_seed
+  bootstrap_replicates: 5000
+  bootstrap_seed: 404002
+  inference_device: cpu
+
+planning:
+  predictor_rolling_window: 3
+
+runtime:
+  candidate_batch_size: 16
+
+interpretation:
+  diagnostic_only: true
+  no_teacher_labels: true
+  no_laya_student: true
+  no_confirmation_claim: true
+  no_performance_threshold: true
+  next_gate: if_small_predictor_has_material_test_ranking_gain_then_design_independent_confirmation
+
+artifacts:
+  per_seed_incremental_progress: true
+  preserve_train_validation_test_seed_provenance: true
+  target_bytes: 100000000
+  stop_bytes: 500000000

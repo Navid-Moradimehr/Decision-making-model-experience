@@ -1,0 +1,39 @@
+project:
+  phase: 4
+  protocol: boxoban_transition_parity_reaudit_v1
+  authorization: d043_stage0_completion_audit
+  max_gpu_hours: 0
+  max_cpu_seconds: 3600
+  validation_or_test_data_access: false
+  student_training_authorized: false
+
+source:
+  dataset_revision: 78011d8c86ad423bfb2e1005012393b4c3c24409
+  split: medium/train
+  run_artifact: artifacts/runs/phase4_boxoban_qualification_v1
+  selected_level_source: saved Stage-0 manifest
+  fetch_only_shards_present_in_saved_manifest: true
+  verify_shard_hash_before_parsing: true
+  preserve_original_audit: true
+
+parity:
+  reference: independent test-only transcription of standard cardinal Sokoban rules
+  state_schedule: initial_then_after_each_action_in_prefix
+  action_prefix: [up, right, down, left, right, down, left, up]
+  compare_all_actions_at_each_state: [up, right, down, left]
+  minimum_distinct_level_state_action_cases: 20
+  required_mismatches: 0
+  required_coverage:
+    blocked_move: at_least_one
+    legal_walk: at_least_one
+    legal_push: at_least_one
+
+solver_reaudit:
+  repeat_all_saved_train_level_solves: true
+  compare_exact_optimal_primitive_action_cost: true
+  per_level_expansion_limit: 2000000
+  per_level_wall_seconds: 60
+
+artifacts:
+  new_audit_file: artifacts/runs/phase4_boxoban_qualification_v1/saved_data_audit_transition_v2.json
+  overwrite_existing_artifacts: false

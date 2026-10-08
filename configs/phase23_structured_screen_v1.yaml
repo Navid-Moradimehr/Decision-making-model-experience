@@ -1,0 +1,94 @@
+schema: phase23-structured-screen-v1
+status: preflight-not-execution-locked
+parents:
+  phase21_result: artifacts/runs/phase21_shifted_b32_confirmation_v1/result.json
+  phase21_lock: experiments/phase21_shifted_b32_confirmation_v1.lock.json
+  phase22_result: artifacts/runs/phase22_mutation_confirmation_v1/result.json
+  phase22_lock: experiments/phase22_mutation_confirmation_v1.lock.json
+  phase23_replay_result: artifacts/runs/phase23_structure_replay_v1/result.json
+  phase23_replay_result_sha256: D5840EFA2602C7107E62432E1DD1026CD6394AAE4A94614A4B58C174E6CEE08E
+  phase23_replay_lock: experiments/phase23_structure_replay_v1.lock.json
+  phase23_replay_lock_sha256: BFDBF388600F25903CDFA39E29C1CB7F6B660130786CF1F8C56484882FF7C005
+block:
+  seed_start: 208000
+  layout_count: 500
+  reserve_half_open: [130000, 130200]
+  d168_half_open: [197000, 197100]
+  phase17_half_open: [201000, 201500]
+  phase18_half_open: [202000, 202500]
+  phase19_half_open: [203000, 203500]
+  phase20_half_open: [205000, 205500]
+  phase21_half_open: [206000, 206500]
+  phase22_half_open: [207000, 207500]
+  replicas: [0, 1, 2]
+  episodes: 6500
+planning:
+  horizon: 8
+  nominal_budgets: [32, 48]
+  mandatory_constant_sequences: 9
+  methods:
+    - {name: shifted_b32, kind: shift_previous_winner, budget: 32, replicas: 3, mutation_count: 0}
+    - {name: random_mutation_b32, kind: phase22_random_mutation, budget: 32, replicas: 3, mutation_count: 4}
+    - {name: structured_prefix_b32, kind: two_edits_each_at_positions_0_1, budget: 32, replicas: 3, mutation_count: 4}
+    - {name: uniform_b48, kind: uniform, budget: 48, replicas: 3, mutation_count: 0}
+    - {name: geometry_waypoint, kind: geometry, budget: null, replicas: 1, mutation_count: 0}
+  random_mutation_count: 4
+  random_mutation_seed_xor: 0x51A7E20D
+  structured_action_seed_xor: 0x23A11
+  structured_positions: [0, 1]
+  structured_neighbors_per_position: 2
+  structured_neighbor_rule: phase20.neighboring_action_ids
+  structured_insertion: replace_last_uniform_residual; constants_preserved
+  exact_unique_scoring_budget: true
+  objective: frozen_phase11_lexicographic
+  execute_first_action_then_replan: true
+  attempt_cap: 1280000
+geometry: {resolution: 0.04, waypoint_tolerance: 0.03}
+analysis:
+  sampling_unit: layout_sha256
+  replica_aggregation: average_three_within_layout
+  bootstrap_draws: 10000
+  bootstrap_seed: 23003
+  order_seed: 23002
+  descriptive_confidence: 0.95
+  rare_event_one_sided_exact_confidence: 0.9916666666666667
+  success_one_sided_bootstrap_confidence: 0.9833333333333333
+  qualification_attribution_confidence: 0.9875
+  structured_attribution_confidence: 0.99375
+  structured_comparisons: [structured_prefix_b32-vs-shifted_b32, structured_prefix_b32-vs-random_mutation_b32]
+  random_mutation_selectable: false
+  latency_ratio: ratio_of_pooled_per_decision_medians_candidate_to_uniform_b48
+  transition_ratio: mean_of_per_layout_candidate_to_uniform_b48_ratios
+gates:
+  uniform_b48_reference:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    geometry_success_gain_at_least: 0.10
+    paired_geometry_gain_95_lower_strictly_above: 0.0
+  b32_candidate:
+    success_strictly_above: 0.90
+    collision_at_most: 0.05
+    each_replica_success_at_least: 0.85
+    each_replica_collision_at_most: 0.10
+    adjusted_success_difference_lower_vs_b48_at_least: -0.05
+    success_regression_layout_event_upper_at_most: 0.05
+    added_collision_layout_event_upper_at_most: 0.05
+    mean_transition_ratio_vs_b48_at_most: 0.70
+    transition_ratio_95_upper_vs_b48_at_most: 0.80
+    median_latency_ratio_vs_b48_at_most: 0.75
+  selection:
+    structured_requires_b32_candidate_gate: true
+    structured_requires_incremental_attribution_vs_shifted: true
+    structured_requires_incremental_attribution_vs_random: true
+    fallback_order: [shifted_b32, uniform_b48]
+execution:
+  device: cpu
+  torch_threads: 16
+  serial: true
+  append_only: true
+  no_interim_scoring_or_extension: true
+outputs:
+  run_dir: artifacts/runs/phase23_structured_screen_v1
+  execution_lock: experiments/phase23_structured_screen_v1.lock.json
